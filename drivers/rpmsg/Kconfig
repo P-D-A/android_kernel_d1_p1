@@ -39,6 +39,7 @@ config RPMSG_RESMGR
 
 config RPMSG_CLIENT_SAMPLE
 	tristate "An rpmsg client sample"
+	default m
 	depends on RPMSG
 	---help---
 	  This is just a sample client driver for the rpmsg bus.
@@ -46,6 +47,7 @@ config RPMSG_CLIENT_SAMPLE
 
 config RPMSG_SERVER_SAMPLE
 	tristate "An rpmsg server sample"
+	default m
 	depends on RPMSG
 	---help---
 	  This is just a sample server driver for the rpmsg bus.
