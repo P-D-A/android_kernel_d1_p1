@@ -340,4 +340,7 @@ config SNAPPY
 	  Add the snappy compressor. This is a reasonable compressor that
  	  compresses and decompresses extremly fast.
 
+config LLIST
+	bool
+
 endmenu
