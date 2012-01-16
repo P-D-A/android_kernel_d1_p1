@@ -623,8 +623,8 @@ int remove_mapping(struct address_space *mapping, struct page *page)
 void putback_lru_page(struct page *page)
 {
 	int lru;
-	int active = !!TestClearPageActive(page);
-	int was_unevictable = PageUnevictable(page);
+	int active;
+	int was_unevictable;
 
 	VM_BUG_ON(PageLRU(page));
 #ifdef CONFIG_CLEANCACHE
@@ -633,6 +633,8 @@ void putback_lru_page(struct page *page)
 #endif
 
 redo:
+	active = !!TestClearPageActive(page);
+	was_unevictable = PageUnevictable(page);
 	ClearPageUnevictable(page);
 
 	if (page_evictable(page, NULL)) {
