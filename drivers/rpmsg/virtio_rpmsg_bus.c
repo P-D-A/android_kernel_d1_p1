@@ -621,7 +621,8 @@ static void rpmsg_recv_done(struct virtqueue *rvq)
 	/* add the buffer back to the remote processor's virtqueue */
 	offset = ((unsigned long) msg) - ((unsigned long) vrp->rbufs);
 	sim_addr = vrp->sim_base + offset;
-	sg_init_one(&sg, sim_addr, sizeof(*msg) + len);
+	/* publish the real size of the buffer */
+	sg_init_one(&sg, sim_addr, RPMSG_BUF_SIZE);
 
 	spin_lock(&vrp->rx_lock);
 	err = virtqueue_add_buf(vrp->rvq, &sg, 0, 1, msg, GFP_KERNEL);
