@@ -33,6 +33,8 @@
 #include <linux/memblock.h>
 #include <linux/remoteproc.h>
 #include <linux/delay.h>
+#include <linux/ion.h>
+#include <linux/omap_ion.h>
 
 #include <asm/io.h>
 
@@ -570,6 +572,9 @@ static int __init omap_rpmsg_ini(void)
 	phys_addr_t psize = omap_ipu_get_mempool_size(
 						OMAP_RPROC_MEMPOOL_STATIC);
 
+	if (!omap_ion_ipu_allocate_memory())
+		return -ENOMEM;
+
 	for (i = 0; i < ARRAY_SIZE(omap_rpmsg_vprocs); i++) {
 		struct omap_rpmsg_vproc *rpdev = &omap_rpmsg_vprocs[i];
 
@@ -616,6 +621,8 @@ static void __exit omap_rpmsg_fini(void)
 
 		unregister_virtio_device(&rpdev->vdev);
 	}
+
+	omap_ion_ipu_free_memory();
 }
 module_exit(omap_rpmsg_fini);
 

@@ -1573,6 +1573,21 @@ static int rproc_runtime_resume(struct device *dev)
 	return 0;
 }
 
+int remove_module(const char* name, unsigned int flags);
+
+static void remove_omap_rpmsg_module_worker(struct work_struct *work)
+{
+	int ret = 0;
+	pr_info("trying to remove omap_rpmsg ...\n");
+	ret = remove_module("omap_rpmsg", 0);
+	if (ret) {
+		pr_err("omap_rpmsg removal failed: %d\n", ret);
+	} else {
+		pr_info("omap_rpmsg removal succeeded\n");
+	}
+}
+static DECLARE_WORK(remove_omap_rpmsg_module_work, remove_omap_rpmsg_module_worker);
+
 static int rproc_runtime_suspend(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
@@ -1627,6 +1642,8 @@ static int rproc_runtime_suspend(struct device *dev)
 	/* we are not interested in the returned value */
 	_event_notify(rproc, RPROC_POS_SUSPEND, NULL);
 	mutex_unlock(&rproc->pm_lock);
+
+	queue_work(system_long_wq, &remove_omap_rpmsg_module_work);
 
 	return 0;
 abort:
