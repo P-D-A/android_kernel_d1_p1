@@ -378,6 +378,7 @@ static int omap_dm_timer_prepare(struct omap_dm_timer *timer)
 	if (unlikely(timer->is_early_init)) {
 		ret = clk_enable(timer->fclk);
 		if (ret) {
+			dev_err(&timer->pdev->dev, "clk_enable failed with %d\n", ret);
 			clk_put(timer->fclk);
 			return -EINVAL;
 		}
@@ -447,16 +448,19 @@ struct omap_dm_timer *omap_dm_timer_request_specific(int id)
 			timer->reserved = 1;
 			timer->enabled = 0;
 			break;
+		} else if (t->pdev->id == id && t->reserved) {
+			dev_err(&timer->pdev->dev, "%s: timer%d is reserved\n", __func__, id);
 		}
 	}
 	mutex_unlock(&dm_timer_mutex);
 
 	if (!timer) {
-		pr_debug("%s: timer%d not available.\n", __func__, id);
+		dev_err(&timer->pdev->dev, "%s: timer%d not available.\n", __func__, id);
 		return NULL;
 	}
 	ret = omap_dm_timer_prepare(timer);
 	if (ret) {
+		dev_err(&timer->pdev->dev, "%s: timer%d preparation failed: %d.\n", __func__, id, ret);
 		timer->reserved = 0;
 		return NULL;
 	}

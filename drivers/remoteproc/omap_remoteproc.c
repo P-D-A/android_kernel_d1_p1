@@ -464,6 +464,7 @@ static inline int omap_rproc_start(struct rproc *rproc, u64 bootaddr)
 	for (i = 0; i < pdata->timers_cnt; i++) {
 		timers[i].odt = omap_dm_timer_request_specific(timers[i].id);
 		if (!timers[i].odt) {
+			dev_err(rproc->dev, "failed to request timer with index %d, id %d\n", i, timers[i].id);
 			ret = -EBUSY;
 			goto out;
 		}
