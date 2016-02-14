@@ -63,9 +63,6 @@ then
         mv $KERNEL_OUT/pvrsrvkm_sgx540_120.ko $KERNEL_OUT/tmp/system/lib/modules/pvrsrvkm_sgx540_120.ko
     fi
 
-    # RPMSG module
-    mv $KERNEL_OUT/arch/arm/plat-omap/omap_rpmsg.ko $KERNEL_OUT/tmp/system/lib/modules/omap_rpmsg.ko
-
     CURRENT_DATE=`date +%Y%m%d-%H%M`
     KERNEL_FNAME=kernel$LOCALVERSION-$CURRENT_DATE.zip
     cp ./android/blank_any_kernel.zip $KERNEL_FNAME
