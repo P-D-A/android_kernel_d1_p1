@@ -2158,6 +2158,14 @@ static struct omap_dss_device front_lcd_device = {
                 .data4_pol      = 0,
                 .type           = OMAP_DSS_DSI_TYPE_VIDEO_MODE,
         },
+        .panel = {
+                .timings        = {
+                    .x_res      = 720,
+                    .y_res      = 1280,
+                },
+                .width_in_um    = 58000,
+                .height_in_um   = 102000,
+        },
         .clocks                 = {
                 .dispc          = {
                         .channel        = {
