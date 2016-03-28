@@ -245,6 +245,9 @@ void __init omap_ion_init(void)
 	pr_info("CMA RPMSG region: address = 0x%x, size = 0x%lx\n", omap4_ion_rpmsg_cma_addr, omap4_ion_rpmsg_cma_pages_count * PAGE_SIZE);
 	pr_info("CMA IPU region 1: address = 0x%x, size = 0x%lx\n", omap4_ion_ipu_cma_addr[1], omap4_ion_ipu_cma_pages_count[1] * PAGE_SIZE);
 
+	omap4_ion_ipu_cma_pages[0] = omap4_ion_ipu_cma_pages[1] = NULL;
+	omap4_ion_rpmsg_cma_pages = NULL;
+
 	for (i = 0; i < omap4_ion_data.nr; i++) {
 		struct ion_platform_heap *h = &omap4_ion_data.heaps[i];
 
@@ -350,6 +353,11 @@ size_t omap_ion_heap_nonsec_tiler_mem_size(void)
 
 bool omap_ion_ipu_allocate_memory(void)
 {
+	if (omap4_ion_ipu_cma_pages[0] || omap4_ion_ipu_cma_pages[1]) {
+		pr_err("%s: CMA IPU pages are already allocated\n", __func__);
+		return false;
+	}
+
 	if (omap4_ion_ipu_cma_pages_count[0]) {
 		omap4_ion_ipu_cma_pages[0] = dma_alloc_from_contiguous_fixed_addr(&omap4_ion_device.dev,
 				omap4_ion_ipu_cma_addr[0], omap4_ion_ipu_cma_pages_count[0]);
@@ -378,6 +386,11 @@ bool omap_ion_ipu_free_memory(void)
 {
 	bool ret = true;
 
+	if (!omap4_ion_ipu_cma_pages[0] && !omap4_ion_ipu_cma_pages[1]) {
+		pr_err("%s: CMA IPU pages are not allocated\n", __func__);
+		return false;
+	}
+
 	if (omap4_ion_ipu_cma_pages_count[0]) {
 		if (!dma_release_from_contiguous(&omap4_ion_device.dev, omap4_ion_ipu_cma_pages[0],
 						omap4_ion_ipu_cma_pages_count[0])) {
@@ -392,12 +405,19 @@ bool omap_ion_ipu_free_memory(void)
 		ret = false;
 	}
 
+	omap4_ion_ipu_cma_pages[0] = omap4_ion_ipu_cma_pages[1] = NULL;
+
 	return ret;
 }
 EXPORT_SYMBOL(omap_ion_ipu_free_memory);
 
 bool omap_ion_rpmsg_allocate_memory(void)
 {
+	if (omap4_ion_rpmsg_cma_pages) {
+		pr_err("CMA RPMSG pages are already allocated\n");
+		return false;
+	}
+
 	omap4_ion_rpmsg_cma_pages = dma_alloc_from_contiguous_fixed_addr(&omap4_ion_device.dev,
 			omap4_ion_rpmsg_cma_addr, omap4_ion_rpmsg_cma_pages_count);
 	if (!omap4_ion_rpmsg_cma_pages) {
@@ -411,11 +431,18 @@ EXPORT_SYMBOL(omap_ion_rpmsg_allocate_memory);
 
 bool omap_ion_rpmsg_free_memory(void)
 {
+	if (!omap4_ion_rpmsg_cma_pages) {
+		pr_err("CMA RPMSG pages are not allocated\n");
+		return false;
+	}
+
 	if (!dma_release_from_contiguous(&omap4_ion_device.dev, omap4_ion_rpmsg_cma_pages,
 					omap4_ion_rpmsg_cma_pages_count)) {
 		pr_err("CMA RPMSG pages release failed\n");
 		return false;
 	}
+
+	omap4_ion_rpmsg_cma_pages = NULL;
 
 	return true;
 }
