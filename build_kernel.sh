@@ -14,6 +14,7 @@
 ##############################################################################
 export ARCH=arm
 export SUBARCH=arm
+# GCC 5.2 sources: https://github.com/arter97/arm-linux-androideabi-5.2.git
 export CROSS_COMPILE=~/AndroidSources/arm-linux-androideabi-5.2/bin/arm-eabi-
 export LOCALVERSION="-mm"
 export USE_CCACHE=1
