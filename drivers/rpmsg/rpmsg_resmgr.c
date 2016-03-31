@@ -12,13 +12,6 @@
  * may be copied, distributed, and modified under those terms.
  */
 
- /*==============================================================================
-Reversion History:
-
-Issue Num          Modifier      Date         Reason
-
-==============================================================================*/
-
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -110,7 +103,6 @@ struct rprm {
 struct rprm_auxclk_depot {
 	struct clk *aux_clk;
 	struct clk *src;
-       struct clk *src_parent;
 };
 
 struct rprm_regulator_depot {
@@ -177,7 +169,7 @@ static int rprm_auxclk_request(struct rprm_elem *e, struct rprm_auxclk *obj)
 	char clk_name[NAME_SIZE];
 	char src_clk_name[NAME_SIZE];
 	struct rprm_auxclk_depot *acd;
-	//struct clk *src_parent;
+	struct clk *src_parent;
 
 	if ((obj->id < AUX_CLK_MIN) || (obj->id > AUX_CLK_MAX)) {
 		pr_err("Invalid aux_clk %d\n", obj->id);
@@ -207,21 +199,23 @@ static int rprm_auxclk_request(struct rprm_elem *e, struct rprm_auxclk *obj)
 		ret = -EIO;
 		goto error_aux;
 	}
-       acd->src_parent = clk_get(NULL, clk_src_name[obj->parent_src_clk]);
-       if (!acd->src_parent) {
+
+	src_parent = clk_get(NULL, clk_src_name[obj->parent_src_clk]);
+	if (!src_parent) {
 		pr_err("%s: unable to get parent clock %s\n", __func__,
 					clk_src_name[obj->parent_src_clk]);
 		ret = -EIO;
 		goto error_aux_src;
 	}
 
-	ret = clk_set_rate(acd->src_parent, obj->parent_src_clk_rate);
+	ret = clk_set_rate(src_parent, (obj->parent_src_clk_rate));
 	if (ret) {
 		pr_err("%s: rate not supported by %s\n", __func__,
 					clk_src_name[obj->parent_src_clk]);
 		goto error_aux_src_parent;
 	}
-	ret = clk_set_parent(acd->src, acd->src_parent);
+
+	ret = clk_set_parent(acd->src, src_parent);
 	if (ret) {
 		pr_err("%s: unable to set clk %s as parent of aux_clk %s\n",
 			__func__,
@@ -229,13 +223,14 @@ static int rprm_auxclk_request(struct rprm_elem *e, struct rprm_auxclk *obj)
 			src_clk_name);
 		goto error_aux_src_parent;
 	}
-	ret = clk_enable(acd->src_parent);
+
+	ret = clk_enable(acd->src);
 	if (ret) {
-		pr_err("%s: error enabling %s\n", __func__, acd->src_parent->name);
+		pr_err("%s: error enabling %s\n", __func__, src_clk_name);
 		goto error_aux_src_parent;
 	}
 
-	ret = clk_set_rate(acd->aux_clk, obj->clk_rate);
+	ret = clk_set_rate(acd->aux_clk, (obj->clk_rate));
 	if (ret) {
 		pr_err("%s: rate not supported by %s\n", __func__, clk_name);
 		goto error_aux_enable;
@@ -246,7 +241,7 @@ static int rprm_auxclk_request(struct rprm_elem *e, struct rprm_auxclk *obj)
 		pr_err("%s: error enabling %s\n", __func__, clk_name);
 		goto error_aux_enable;
 	}
-	//clk_put(src_parent);
+	clk_put(src_parent);
 
 	e->handle = acd;
 
@@ -254,7 +249,7 @@ static int rprm_auxclk_request(struct rprm_elem *e, struct rprm_auxclk *obj)
 error_aux_enable:
 	clk_disable(acd->src);
 error_aux_src_parent:
-	clk_put(acd->src_parent);
+	clk_put(src_parent);
 error_aux_src:
 	clk_put(acd->src);
 error_aux:
@@ -267,20 +262,12 @@ error:
 
 static void rprm_auxclk_release(struct rprm_auxclk_depot *obj)
 {
-        clk_disable(obj->aux_clk);
-        clk_put(obj->aux_clk);
-        clk_put(obj->src);
+	clk_disable((struct clk *)obj->aux_clk);
+	clk_put((struct clk *)obj->aux_clk);
+	clk_disable((struct clk *)obj->src);
+	clk_put((struct clk *)obj->src);
 
-        /* the above auxclk disable will disable and it's parent
-        * clk auxclk_src_ck. The auxclk_src_ck clock source is sysclk,
-        * dpll_core or dpll_per. The source clock of auxclk_src_ck is need to
-        * be disabled latter than auxclk. The delay is hardware specific and
-        * we will add enough time to cover a worst case.
-        */
-        usleep_range(200, 250);
-        clk_disable(obj->src_parent);
-        clk_put(obj->src_parent);
-	 kfree(obj);
+	kfree(obj);
 }
 
 static

@@ -747,7 +747,7 @@ static int rpmsg_omx_probe(struct rpmsg_channel *rpdev)
 
 	omxserv->dev = device_create(rpmsg_omx_class, &rpdev->dev,
 			MKDEV(major, minor), NULL,
-			rpdev->id.name);
+			"rpmsg-omx%d", minor);
 	if (IS_ERR(omxserv->dev)) {
 		ret = PTR_ERR(omxserv->dev);
 		dev_err(&rpdev->dev, "device_create failed: %d\n", ret);
