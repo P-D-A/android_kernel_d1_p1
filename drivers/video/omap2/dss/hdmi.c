@@ -50,7 +50,7 @@
 #include "dss_features.h"
 
 #ifdef CONFIG_OMAP_PM
-#include <linux/pm_qos.h>
+#include <linux/pm_qos_params.h>
 static struct pm_qos_request_list pm_qos_handle;
 static bool pm_qos_handle_added;
 #endif
