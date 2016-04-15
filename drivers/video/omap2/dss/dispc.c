@@ -619,10 +619,12 @@ void dispc_runtime_put(void)
 		/* Sets DSS max latency constraint
 		 * * (allowing for deeper power state)
 		 * */
+#if 0		/* STARGO: This causes panic */
 		omap_pm_set_max_dev_wakeup_lat(
 				&dispc.pdev->dev,
 				&dispc.pdev->dev,
 				dss_powerdomain->wakeup_lat[PWRDM_FUNC_PWRST_OFF]);
+#endif
 
 		r = pm_runtime_put_sync(&dispc.pdev->dev);
 		WARN_ON(r);
@@ -2603,10 +2605,18 @@ int dispc_setup_plane(enum omap_plane plane,
 	_dispc_setup_global_alpha(plane, global_alpha);
 
 	if (cpu_is_omap44xx()) {
+#if !defined(CONFIG_OMAP2_HDMI_DEFAULT_DISPLAY)
 		fifo_low = dispc_calculate_threshold(plane, paddr + offset0,
 				   puv_addr + offset0, width, height,
 				   row_inc, pix_inc);
 		fifo_high = dispc_get_plane_fifo_size(plane) - 1;
+#else
+		u32 size;
+		size = dispc_get_plane_fifo_size(plane);
+
+		default_get_overlay_fifo_thresholds(plane, size,
+				&size, &fifo_low, &fifo_high);
+#endif
 		dispc_setup_plane_fifo(plane, fifo_low, fifo_high);
 	}
 
@@ -4501,6 +4511,21 @@ static void _omap_dispc_initial_config(void)
 		dispc_write_reg(DISPC_GLOBAL_MFLAG, 2);
 }
 
+void dispc_cleanup_irq(void)
+{
+	/*
+	 * This is called in dispc probe function
+	 * before requesting irq
+	 */
+
+	/*Disable all interrupts */
+	dispc_write_reg(DISPC_IRQENABLE, 0x0);
+
+	/*Clear interrupts if any */
+	dispc_write_reg(DISPC_IRQSTATUS, 0xffffffff);
+
+}
+
 /* DISPC HW IP initialisation */
 static int omap_dispchw_probe(struct platform_device *pdev)
 {
@@ -4547,6 +4572,15 @@ static int omap_dispchw_probe(struct platform_device *pdev)
 		r = -ENODEV;
 		goto err_irq;
 	}
+
+	/*
+	 * Need to disable DISPC_IRQ  and clear DISPC_IRQSTATUS here,
+	 * so no irqs are deliverd before the dsi block is fully
+	 * initialzed -- this will be needed if bootloader initialized
+	 * DSS already and interrupt are enabled.
+	 */
+	if (cpu_is_omap44xx())
+		dispc_cleanup_irq();
 
 	r = request_irq(dispc.irq, omap_dispc_irq_handler, IRQF_SHARED,
 		"OMAP DISPC", dispc.pdev);
