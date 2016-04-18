@@ -64,7 +64,7 @@ static void TouchKey_bl_led_set(struct led_classdev *led_cdev,
     {
         if(board_id) 
         {
-            printk(KERN_ERR "pwm led off!\n");
+//            printk(KERN_ERR "pwm led off!\n");
             twl_i2c_write_u8(TWL6030_MODULE_ID1, PWM_LED_DOWN_VALUE, LED_PWM1_ON);
             twl_i2c_write_u8(TWL6030_MODULE_ID1, LED_DOWN, LED_PWM1_OFF);
             twl_i2c_write_u8(TWL6030_MODULE_ID1, LED_PWM_EN_SET, LED_PWM_EN);
@@ -76,7 +76,7 @@ static void TouchKey_bl_led_set(struct led_classdev *led_cdev,
     }
     else if(board_id) 
     {
-        dev_info(&pdev_tkled->dev, "led pwm control!<<<<<<<<<<<<<\n");
+//        dev_info(&pdev_tkled->dev, "led pwm control!<<<<<<<<<<<<<\n");
         twl_i2c_write_u8(TWL6030_MODULE_ID1, PWM_ON_VALUE, LED_PWM1_ON);
         twl_i2c_write_u8(TWL6030_MODULE_ID1, PWM_OFF_VALUE, LED_PWM1_OFF);
         twl_i2c_write_u8(TWL6030_MODULE_ID1, LED_PWM_EN_SET, LED_PWM_EN);
