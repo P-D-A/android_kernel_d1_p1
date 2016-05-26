@@ -47,23 +47,6 @@ fi
 
 if [ -f ./zImage ]
 then
-    ###########################
-    # make SGX module if need #
-    ###########################
-    SGX_MODULE=`grep "CONFIG_PVR_SGX=y" $KERNEL_OUT/.config`
-    if [ ! "$SGX_MODULE" ]
-    then
-        make clean -C $KERNELDIR/pvr-source/eurasiacon/build/linux2/omap4430_android
-        cp $KERNELDIR/drivers/video/omap2/omapfb/omapfb.h $KERNEL_OUT/drivers/video/omap2/omapfb/omapfb.h
-        make -j10 -C $KERNELDIR/pvr-source/eurasiacon/build/linux2/omap4430_android ARCH=arm KERNELDIR=$KERNEL_OUT TARGET_PRODUCT="blaze_tablet" BUILD=release TARGET_SGX=540
-        mv $KERNELDIR/pvr-source/eurasiacon/binary2_540_120_omap4430_android_release/target/kbuild/pvrsrvkm_sgx540_120.ko $KERNEL_OUT
-        $STRIP --strip-unneeded $KERNEL_OUT/pvrsrvkm_sgx540_120.ko
-        make clean -C $KERNELDIR/pvr-source/eurasiacon/build/linux2/omap4430_android
-        rm -r $KERNELDIR/pvr-source/eurasiacon/binary2_540_120_omap4430_android_release
-        cp $KERNEL_OUT/pvrsrvkm_sgx540_120.ko ./pvrsrvkm_sgx540_120.ko
-        mv $KERNEL_OUT/pvrsrvkm_sgx540_120.ko $KERNEL_OUT/tmp/system/lib/modules/pvrsrvkm_sgx540_120.ko
-    fi
-
     CURRENT_DATE=`date +%Y%m%d-%H%M`
     KERNEL_FNAME=kernel$LOCALVERSION-$CURRENT_DATE.zip
     cp ./android/blank_any_kernel.zip $KERNEL_FNAME
