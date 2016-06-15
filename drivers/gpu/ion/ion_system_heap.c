@@ -27,113 +27,101 @@ static int ion_system_heap_allocate(struct ion_heap *heap,
 				    unsigned long size, unsigned long align,
 				    unsigned long flags)
 {
-	int n_pages = PAGE_ALIGN(size) / PAGE_SIZE;
-	struct page **page_list;
-	const int gfp_mask = GFP_KERNEL | __GFP_HIGHMEM | __GFP_ZERO;
-	int i = 0;
+	struct sg_table *table;
+	struct scatterlist *sg;
+	int i, j;
+	int npages = PAGE_ALIGN(size) / PAGE_SIZE;
 
-	page_list = kmalloc(n_pages * sizeof(void *), GFP_KERNEL);
-
-	for (i = 0; i < n_pages; i++) {
-		page_list[i] = alloc_page(gfp_mask);
-		if (page_list[i] == NULL)
-			goto out;
+	table = kmalloc(sizeof(struct sg_table), GFP_KERNEL);
+	if (!table)
+		return -ENOMEM;
+	i = sg_alloc_table(table, npages, GFP_KERNEL);
+	if (i)
+		goto err0;
+	for_each_sg(table->sgl, sg, table->nents, i) {
+		struct page *page;
+		page = alloc_page(GFP_HIGHUSER | __GFP_ZERO);
+		if (!page)
+			goto err1;
+		sg_set_page(sg, page, PAGE_SIZE, 0);
 	}
-
-	buffer->priv_virt = page_list;
+	buffer->priv_virt = table;
 	return 0;
-
-out:
-	/* failed on i, so go to i-1 */
-	i--;
-
-	for (; i >= 0; i--)
-		__free_page(page_list[i]);
-
-	kfree(page_list);
+err1:
+	for_each_sg(table->sgl, sg, i, j)
+		__free_page(sg_page(sg));
+	sg_free_table(table);
+err0:
+	kfree(table);
 	return -ENOMEM;
 }
 
 void ion_system_heap_free(struct ion_buffer *buffer)
 {
 	int i;
-	int n_pages = PAGE_ALIGN(buffer->size) / PAGE_SIZE;
-	struct page **page_list = (struct page **)buffer->priv_virt;
+	struct scatterlist *sg;
+	struct sg_table *table = buffer->priv_virt;
 
-	for (i = 0; i < n_pages; i++)
-		__free_page(page_list[i]);
-	kfree(page_list);
+	for_each_sg(table->sgl, sg, table->nents, i)
+		__free_page(sg_page(sg));
+	if (buffer->sg_table)
+		sg_free_table(buffer->sg_table);
+	kfree(buffer->sg_table);
 }
 
-struct scatterlist *ion_system_heap_map_dma(struct ion_heap *heap,
-					    struct ion_buffer *buffer)
+struct sg_table *ion_system_heap_map_dma(struct ion_heap *heap,
+					 struct ion_buffer *buffer)
 {
-	struct scatterlist *sglist;
-	struct page **page_list = (struct page **)buffer->priv_virt;
-	int i;
-	int n_pages = PAGE_ALIGN(buffer->size) / PAGE_SIZE;
-
-	sglist = vmalloc(n_pages * sizeof(struct scatterlist));
-	if (!sglist)
-		return ERR_PTR(-ENOMEM);
-	memset(sglist, 0, n_pages * sizeof(struct scatterlist));
-	sg_init_table(sglist, n_pages);
-	for (i = 0; i < n_pages; i++)
-		sg_set_page(&sglist[i], page_list[i], PAGE_SIZE, 0);
-	/* XXX do cache maintenance for dma? */
-	return sglist;
+	return buffer->priv_virt;
 }
 
-void ion_system_heap_unmap_dma(struct ion_heap *heap, struct ion_buffer *buffer)
+void ion_system_heap_unmap_dma(struct ion_heap *heap,
+			       struct ion_buffer *buffer)
 {
-	/* XXX undo cache maintenance for dma? */
-	if (buffer->sglist)
-		vfree(buffer->sglist);
+	return;
 }
 
 void *ion_system_heap_map_kernel(struct ion_heap *heap,
 				 struct ion_buffer *buffer)
 {
-	int n_pages = PAGE_ALIGN(buffer->size) / PAGE_SIZE;
-	struct page **page_list = (struct page **)buffer->priv_virt;
+	struct scatterlist *sg;
+	int i;
+	void *vaddr;
+	struct sg_table *table = buffer->priv_virt;
+	struct page **pages = kmalloc(sizeof(struct page *) * table->nents,
+				      GFP_KERNEL);
 
-	return vm_map_ram(page_list, n_pages, -1, PAGE_KERNEL);
+	for_each_sg(table->sgl, sg, table->nents, i)
+		pages[i] = sg_page(sg);
+	vaddr = vmap(pages, table->nents, VM_MAP, PAGE_KERNEL);
+	kfree(pages);
+
+	return vaddr;
 }
 
 void ion_system_heap_unmap_kernel(struct ion_heap *heap,
 				  struct ion_buffer *buffer)
 {
-	int n_pages = PAGE_ALIGN(buffer->size) / PAGE_SIZE;
-
-	vm_unmap_ram(buffer->vaddr, n_pages);
+	vunmap(buffer->vaddr);
 }
 
 int ion_system_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
 			     struct vm_area_struct *vma)
 {
-	unsigned long uaddr = vma->vm_start;
-	unsigned long usize = vma->vm_end - vma->vm_start;
-	int n_pages = PAGE_ALIGN(buffer->size) / PAGE_SIZE;
-	struct page **page_list = (struct page **)buffer->priv_virt;
+	struct sg_table *table = buffer->priv_virt;
+	unsigned long addr = vma->vm_start;
+	unsigned long offset = vma->vm_pgoff;
+	struct scatterlist *sg;
 	int i;
 
-	if (usize /* + pgoff << PAGE_SHIFT */  > (n_pages << PAGE_SHIFT))
-		return -EINVAL;
-
-	i = 0;
-	do {
-		int ret;
-
-		ret = vm_insert_page(vma, uaddr, page_list[i]);
-		if (ret)
-			return ret;
-
-		uaddr += PAGE_SIZE;
-		usize -= PAGE_SIZE;
-	} while (usize > 0);
-
-	vma->vm_flags |= VM_RESERVED;
-
+	for_each_sg(table->sgl, sg, table->nents, i) {
+		if (offset) {
+			offset--;
+			continue;
+		}
+		vm_insert_page(vma, addr, sg_page(sg));
+		addr += PAGE_SIZE;
+	}
 	return 0;
 }
 
@@ -190,17 +178,23 @@ static int ion_system_contig_heap_phys(struct ion_heap *heap,
 	return 0;
 }
 
-struct scatterlist *ion_system_contig_heap_map_dma(struct ion_heap *heap,
+struct sg_table *ion_system_contig_heap_map_dma(struct ion_heap *heap,
 						   struct ion_buffer *buffer)
 {
-	struct scatterlist *sglist;
+	struct sg_table *table;
+	int ret;
 
-	sglist = vmalloc(sizeof(struct scatterlist));
-	if (!sglist)
+	table = kzalloc(sizeof(struct sg_table), GFP_KERNEL);
+	if (!table)
 		return ERR_PTR(-ENOMEM);
-	sg_init_table(sglist, 1);
-	sg_set_page(sglist, virt_to_page(buffer->priv_virt), buffer->size, 0);
-	return sglist;
+	ret = sg_alloc_table(table, 1, GFP_KERNEL);
+	if (ret) {
+		kfree(table);
+		return ERR_PTR(ret);
+	}
+	sg_set_page(table->sgl, virt_to_page(buffer->priv_virt), buffer->size,
+		    0);
+	return table;
 }
 
 int ion_system_contig_heap_map_user(struct ion_heap *heap,

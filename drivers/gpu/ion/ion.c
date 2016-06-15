@@ -20,6 +20,7 @@
 #include <linux/anon_inodes.h>
 #include <linux/ion.h>
 #include <linux/list.h>
+#include <linux/memblock.h>
 #include <linux/miscdevice.h>
 #include <linux/mm.h>
 #include <linux/mm_types.h>
@@ -433,11 +434,11 @@ void *ion_map_kernel(struct ion_client *client, struct ion_handle *handle)
 }
 EXPORT_SYMBOL(ion_map_kernel);
 
-struct scatterlist *ion_map_dma(struct ion_client *client,
+struct sg_table *ion_map_dma(struct ion_client *client,
 				struct ion_handle *handle)
 {
 	struct ion_buffer *buffer;
-	struct scatterlist *sglist;
+	struct sg_table *table;
 
 	mutex_lock(&client->lock);
 	if (!ion_handle_validate(client, handle)) {
@@ -457,16 +458,16 @@ struct scatterlist *ion_map_dma(struct ion_client *client,
 		return ERR_PTR(-ENODEV);
 	}
 	if (_ion_map(&buffer->dmap_cnt, &handle->dmap_cnt)) {
-		sglist = buffer->heap->ops->map_dma(buffer->heap, buffer);
-		if (IS_ERR_OR_NULL(sglist))
+		table = buffer->heap->ops->map_dma(buffer->heap, buffer);
+		if (IS_ERR_OR_NULL(table))
 			_ion_unmap(&buffer->dmap_cnt, &handle->dmap_cnt);
-		buffer->sglist = sglist;
+		buffer->sg_table = table;
 	} else {
-		sglist = buffer->sglist;
+		table = buffer->sg_table;
 	}
 	mutex_unlock(&buffer->lock);
 	mutex_unlock(&client->lock);
-	return sglist;
+	return table;
 }
 EXPORT_SYMBOL(ion_map_dma);
 
@@ -495,7 +496,7 @@ void ion_unmap_dma(struct ion_client *client, struct ion_handle *handle)
 	mutex_lock(&buffer->lock);
 	if (_ion_unmap(&buffer->dmap_cnt, &handle->dmap_cnt)) {
 		buffer->heap->ops->unmap_dma(buffer->heap, buffer);
-		buffer->sglist = NULL;
+		buffer->sg_table = NULL;
 	}
 	mutex_unlock(&buffer->lock);
 	mutex_unlock(&client->lock);
@@ -1281,4 +1282,20 @@ void ion_device_destroy(struct ion_device *dev)
 	misc_deregister(&dev->dev);
 	/* XXX need to free the heaps and clients ? */
 	kfree(dev);
+}
+
+void __init ion_reserve(struct ion_platform_data *data)
+{
+	int i, ret;
+
+	for (i = 0; i < data->nr; i++) {
+		if (data->heaps[i].size == 0)
+			continue;
+		ret = memblock_reserve(data->heaps[i].base,
+				       data->heaps[i].size);
+		if (ret)
+			pr_err("memblock reserve of %x@%lx failed\n",
+			       data->heaps[i].size,
+			       data->heaps[i].base);
+	}
 }
