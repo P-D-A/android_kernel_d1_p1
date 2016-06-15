@@ -48,7 +48,7 @@ fi
 if [ -f ./zImage ]
 then
     CURRENT_DATE=`date +%Y%m%d-%H%M`
-    KERNEL_FNAME=kernel$LOCALVERSION-$CURRENT_DATE.zip
+    KERNEL_FNAME=kernel$LOCALVERSION-$CURRENT_DATE-cma.zip
     cp ./android/blank_any_kernel.zip $KERNEL_FNAME
     pushd $KERNEL_OUT/tmp
     zip -r ../../../$KERNEL_FNAME ./kernel/
