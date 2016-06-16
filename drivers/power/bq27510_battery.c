@@ -1489,7 +1489,7 @@ static int bq27510_battery_probe(struct i2c_client *client,
         goto batt_failed_1;
     }
 
-    di = kzalloc(sizeof(*di), GFP_KERNEL);
+    di = devm_kzalloc(&client->dev, sizeof(*di), GFP_KERNEL);
     if (!di) {
         dev_err(&client->dev, "failed to allocate device info data\n");
         retval = -ENOMEM;
@@ -1559,7 +1559,6 @@ static int bq27510_battery_remove(struct i2c_client *client)
     idr_remove(&bq27510_battery_id, di->id);
     mutex_unlock(&bq27510_battery_mutex);
 
-    kfree(di);
     return 0;
 }
 
