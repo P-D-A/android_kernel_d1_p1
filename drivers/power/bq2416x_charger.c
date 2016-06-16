@@ -1241,7 +1241,7 @@ static int __devinit bq2416x_charger_probe(struct i2c_client *client,
 	u8 read_reg = 0;
 	enum plugin_status plugin_stat;
 
-	di = kzalloc(sizeof(*di), GFP_KERNEL);
+	di = devm_kzalloc(&client->dev, sizeof(*di), GFP_KERNEL);
 	if (!di)
 		return -ENOMEM;
 
@@ -1345,8 +1345,6 @@ static int __devinit bq2416x_charger_probe(struct i2c_client *client,
 	return 0;
 
 err_kfree:
-	kfree(di);	
-	
 	return ret;
 }
 
@@ -1364,7 +1362,6 @@ static int __devexit bq2416x_charger_remove(struct i2c_client *client)
 
 	//twl6030_unregister_notifier(&di->nb, 1);
 	otg_unregister_notifier(di->otg, &di->nb_otg);
-	kfree(di);
 
 	return 0;
 }
