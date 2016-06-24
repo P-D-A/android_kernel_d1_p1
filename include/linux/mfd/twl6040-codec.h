@@ -214,7 +214,6 @@ Problem NO.         Name        Time         Reason
 #define TWL6040_I2CSEL			0x01
 #define TWL6040_RESETSPLIT		0x04
 #define TWL6040_INTCLRMODE		0x08
-#define TWL6040_I2CMODE_FAST	0x10
 #define TWL6040_CLK32KSEL		0x40
 
 /* STATUS (0x2E) fields */
