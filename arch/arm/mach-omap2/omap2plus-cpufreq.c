@@ -305,7 +305,7 @@ static int omap_target(struct cpufreq_policy *policy,
 
 static void omap_cpu_early_suspend(struct early_suspend *h)
 {
-	unsigned int cur;
+	unsigned int cur = 0;
 
 	mutex_lock(&omap_cpufreq_lock);
 
@@ -335,7 +335,7 @@ static void omap_cpu_early_suspend(struct early_suspend *h)
 
 static void omap_cpu_late_resume(struct early_suspend *h)
 {
-	unsigned int cur;
+	unsigned int cur = 0;
 
 	mutex_lock(&omap_cpufreq_lock);
 
