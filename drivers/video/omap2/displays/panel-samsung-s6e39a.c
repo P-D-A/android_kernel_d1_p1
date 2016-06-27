@@ -1331,8 +1331,8 @@ static ssize_t show_reg_read_all(struct device *dev,
 {
 	struct omap_dss_device *dssdev = to_dss_device(dev);
 	struct sp_data *pd = dev_get_drvdata(&dssdev->dev);
-    u8 pwr_mode,madctl,img_mode,sig_mode;
-    s32 r;
+    u8 pwr_mode = 0, madctl = 0, img_mode = 0, sig_mode = 0;
+    s32 r = 0;
 
     if(dssdev->state != OMAP_DSS_DISPLAY_ACTIVE)
         return 0;
