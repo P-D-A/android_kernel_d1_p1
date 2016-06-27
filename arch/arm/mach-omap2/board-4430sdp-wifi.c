@@ -292,17 +292,16 @@ int sdp4430_wifi_get_mac_addr(unsigned char * buf)
 {
     int ret = -1;
     int sum = 0;
+    struct nve_info_user  info;
 
     if(NULL == buf)
     {
         printk("sdp4430_wifi_get_mac_addr is error.\r");
         return -1;
     }
-    memset(buf, 0, WLAN_MAC_LEN );
+    memset(buf, 0, WLAN_MAC_LEN);
 
-    //virable initialize
-    struct nve_info_user  info;
-    memset( &info, 0, sizeof(info) );
+    memset(&info, 0, sizeof(info));
     info.nv_read    = TEL_HUAWEI_NV_READ;
     info.nv_number  = NV_WLAN_NUM;   //nve item
     strcpy( info.nv_name, "MACWLAN" );
