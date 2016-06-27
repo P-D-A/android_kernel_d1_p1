@@ -102,7 +102,7 @@ static struct attribute_group properties_attr_group = {
 static void __init virtualkeys_init(void)
 {
     extern struct kobject *prop_kobj_virtual;
-    int ret;
+    int ret = 0;
     #if 0
     if (!panel_get_touchscreen_config_size())
     {
