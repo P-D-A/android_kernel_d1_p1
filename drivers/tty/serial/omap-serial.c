@@ -274,8 +274,8 @@ static void serial_omap_stop_rx(struct uart_port *port)
 static inline void receive_chars(struct uart_omap_port *up, int *status)
 {
 	struct tty_struct *tty = up->port.state->port.tty;
-	unsigned int flag;
-	unsigned char ch, lsr = *status;
+	unsigned int flag = 0;
+	unsigned char ch = 0, lsr = *status;
 	int max_count = 256;
 
 	do {
