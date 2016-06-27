@@ -168,20 +168,11 @@
 /*#define GPIO_MHL_INT        1*/
 /*#define GPIO_MHL_3V3_EN        37*/
 #endif
-#define PHYS_ADDR_SMC_SIZE    (SZ_1M * 3)
-#define PHYS_ADDR_SMC_MEM    (0x80000000 + SZ_1G - PHYS_ADDR_SMC_SIZE)
 #ifdef CONFIG_KEYPAD_ATMEL_TOUCH
  #define GPIO_ATMEL_TK_INT     151
 #endif
 //del some lines about leds_gpio define
 #define GPIO_LED_TK             137
-#define OMAP_ION_HEAP_SECURE_INPUT_SIZE    (SZ_1M * 90)
-#define PHYS_ADDR_DUCATI_SIZE    (SZ_1M * 105)
-#define PHYS_ADDR_DUCATI_MEM    (PHYS_ADDR_SMC_MEM - PHYS_ADDR_DUCATI_SIZE - \
-                OMAP_ION_HEAP_SECURE_INPUT_SIZE)
-
-#define OMAP4SDP_MDM_PWR_EN_GPIO    157
-
 
 #if 0
 #ifdef CONFIG_TOUCHSCREEN_RMI4_SYNAPTICS
