@@ -324,10 +324,10 @@ static void mdv20_esd_work(struct work_struct *work)
 {
 	struct mdv20_data *mdv20data = container_of(work, struct mdv20_data,esd_work.work);
 	struct omap_dss_device *dssdev = mdv20data->dssdev;
-	u8 power_mode;
+	u8 power_mode = 0;
 	u8 data_buf[80];
-	u8 expected_mode;
-	int r, i;
+	u8 expected_mode = 0;
+	int r = 0, i = 0;
 
 	mutex_lock(&mdv20data->lock);
 	if (!mdv20data->enabled) {
@@ -346,8 +346,6 @@ static void mdv20_esd_work(struct work_struct *work)
 		printk("HARI: %s , Failed to get power mode, r = %d\n",__func__, r);
 		goto err;
 	}
-
-
 
 	if ((data_buf[0] & 0x0f) != 0x0c) {
 		dev_err(&dssdev->dev,
@@ -379,7 +377,7 @@ err:
 	} else {
 		dssdev->state = OMAP_DSS_DISPLAY_ACTIVE;
 	}
-	return r;
+	return;
 }
 
 static u8 mdv20_get_rotate(struct omap_dss_device *dssdev)
@@ -630,7 +628,7 @@ static ssize_t mdv20_signal_mode_show(struct device *dev,
 	int r = 0;
 	u8 data_buf[7] = {0xbe, 0xff, 0x0f, 0x1a, 0x18, 0x02, 0x40};
 	struct omap_dss_device *dssdev = to_dss_device(dev);
-	static index = 0;
+	static int index = 0;
 	if(index>255)
        	 index=0;
 	
@@ -680,11 +678,11 @@ static ssize_t mdv20_restart_video_xfer(struct device *dev,
 }
 /* 0002-add-sysfs-entry-for-diaplay-on-off-for-testing-inter.patch */
 static ssize_t store_mdv20_displayoff(struct device *dev,
-				    struct device_attribute *attr, char * buf)
+				    struct device_attribute *attr, char *buf)
  {
 	int r = 0;
 	u8 data_buf[80];
-	u8 off;
+	u8 off = 0;
 	struct omap_dss_device *dssdev = to_dss_device(dev);
 		
 	off = simple_strtoul(buf, NULL, 10);
@@ -758,9 +756,8 @@ static DEVICE_ATTR(display_off, S_IRUGO |S_IWUSR, NULL, store_mdv20_displayoff);
 /* 0004-Added-the-backlight-adjustment-support.patch */
 static DEVICE_ATTR(signal_mode, S_IRUGO, mdv20_signal_mode_show, NULL);
 /* patch end */
-static DEVICE_ATTR(lcd_info, S_IRUGO,
-        show_lcd_info, NULL);
-static DEVICE_ATTR(cabc_mode, 0644,show_cabc_mode, store_cabc_mode);
+static DEVICE_ATTR(lcd_info, S_IRUGO, show_lcd_info, NULL);
+static DEVICE_ATTR(cabc_mode, 0644, show_cabc_mode, store_cabc_mode);
 static struct attribute *mdv20_attrs[] = {
 	&dev_attr_power_mode.attr,
 	&dev_attr_address_mode.attr,
@@ -2170,6 +2167,9 @@ static int mdv20_suspend(struct omap_dss_device *dssdev)
 		/* 0001-Fix-for-supporting-interleaving-sending-the-non-vide.patch */
 		u8 buf[80];
 		int r =0;
+		u32 mask = 0;
+		u32 v = 0;
+
         struct clk *tmp_dss_fck = omap_clk_get_by_name("dss_fck");
 		dev_dbg(&dssdev->dev, "suspend\n");
 	if(!dssdev->skip_init)
@@ -2190,9 +2190,7 @@ static int mdv20_suspend(struct omap_dss_device *dssdev)
 	if(boot_first)
 	{
 	    boot_first = false;
-	    u32 mask;
-		u32 v;
-        mask = CLK_FLAG& CLOCK_CLKOUTX2 ?
+	    mask = CLK_FLAG& CLOCK_CLKOUTX2 ?
 			OMAP4430_DPLL_CLKOUTX2_GATE_CTRL_MASK :
 			OMAP4430_DPLL_CLKOUT_GATE_CTRL_MASK;
 	    v = __raw_readl(OMAP4430_CM_DIV_M5_DPLL_PER);
