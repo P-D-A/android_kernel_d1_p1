@@ -1191,6 +1191,9 @@ static void _dsi_print_reset_status(struct platform_device *dsidev)
 
 static inline int dsi_if_enable(struct platform_device *dsidev, bool enable)
 {
+        int count = 0;
+        int maxtimes = 5;
+
 	DSSDBG("dsi_if_enable(%d)\n", enable);
 
 	enable = enable ? 1 : 0;
@@ -1202,12 +1205,10 @@ static inline int dsi_if_enable(struct platform_device *dsidev, bool enable)
 			return -EIO;
 	}
 #endif
-        int count = 0;
-        int maxtimes = 5;
 again:
-         REG_FLD_MOD(dsidev, DSI_CTRL, enable, 0, 0); /* IF_EN */
-       if((wait_for_bit_change(dsidev, DSI_CTRL, 0, enable) != enable) && (count < maxtimes))
-       {
+        REG_FLD_MOD(dsidev, DSI_CTRL, enable, 0, 0); /* IF_EN */
+        if((wait_for_bit_change(dsidev, DSI_CTRL, 0, enable) != enable) && (count < maxtimes))
+        {
             count++;
             if(count == maxtimes)
             {
@@ -1215,7 +1216,7 @@ again:
                return -EIO;
             }
             goto again;
-       }
+        }
 	return 0;
 }
 
