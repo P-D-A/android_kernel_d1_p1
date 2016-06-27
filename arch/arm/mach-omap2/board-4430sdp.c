@@ -1279,8 +1279,8 @@ static struct platform_device omap_vwlan_device = {
 struct regulator *enable_power_for_device(struct device* dev , const char* id,int uV)
 {
     struct regulator *vaux = NULL;
-    int  voltage, ret = 0;
-    if(NULL == id)
+    int ret = 0;
+    if (NULL == id)
     {
         printk(KERN_ERR"turn_on_aux for dev(%s) id(%s) error", dev_name(dev), id);
         vaux = NULL;
@@ -1741,7 +1741,7 @@ static struct omap_i2c_bus_board_data __initdata sdp4430_i2c_4_bus_pdata;
  */
 int __init omap4_i2c_bus1_init(void)
 {
-    int i;
+    int i = 0;
     struct i2c_board_info *sdp4430_i2c_boardinfo_all;
     const unsigned int device_num = NELEMENTS(sdp4430_i2c_boardinfo)+1;//number of all devices, added pmic to i2c1 bus
     sdp4430_i2c_boardinfo_all = (struct i2c_board_info *)kzalloc(sizeof(struct i2c_board_info)*device_num, GFP_KERNEL);
@@ -1757,9 +1757,7 @@ int __init omap4_i2c_bus1_init(void)
 
 static int __init omap4_i2c_init(void)
 {
-    int i; 
-    
-    int gpio_enable_charger = get_gpio_num_by_name("GPIO_ENABLE_CHARGER");
+    int i = 0;
 
     if (get_mhl_ci2ca_value())
     {
@@ -2261,9 +2259,9 @@ static struct omapfb_platform_data blaze_fb_pdata = {
 
 static void sdp4430_lcd_init(void)
 {
-    u32 reg;
+    u32 reg = 0;
     u32 temp = 0;
-    int status;
+    int status = 0;
 
     /* Enable 3 lanes in DSI1 module, disable pull down */
     reg = omap4_ctrl_pad_readl(OMAP4_CTRL_MODULE_PAD_CORE_CONTROL_DSIPHY);
@@ -2857,9 +2855,9 @@ static void __init omap_4430sdp_map_io(void)
     omap2_set_globals_443x();
     omap44xx_map_common_io();
 }
+
 static void __init omap_4430sdp_reserve(void)
 {
-	omap_init_ram_size();
 
 #if defined(CONFIG_FB_OMAP2_NUM_FBS)
 #define OMAPLFB_NUM_DEV CONFIG_FB_OMAP2_NUM_FBS
@@ -2878,6 +2876,8 @@ static struct sgx_omaplfb_platform_data blaze_omaplfb_plat_data = {
     .num_configs = OMAPLFB_NUM_DEV,
     .configs = omaplfb_config_blaze,
 };
+
+    omap_init_ram_size();
 
 #ifdef CONFIG_ION_OMAP
 	omap_android_display_setup(&sdp4430_dss_data,
