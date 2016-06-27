@@ -4190,7 +4190,6 @@ int dsi_video_mode_enable(struct omap_dss_device *dssdev, u8 data_type)
 {
 	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
 	u16 word_count;
-	u32 r;
 	u32 header;
 
 	dsi_if_enable(dsidev, false);
@@ -4203,12 +4202,6 @@ int dsi_video_mode_enable(struct omap_dss_device *dssdev, u8 data_type)
 	if (wait_for_bit_change(dsidev, DSI_PLL_STATUS, 15, 0) != 0)
 		BUG();
 	REG_FLD_MOD(dsidev, DSI_VC_CTRL(0) , 1, 4, 4);
-
-	//r = dsi_read_reg(dsidev, DSI_VC_CTRL(0));
-	//r = FLD_MOD(r, 1, 4, 4);
-	//r = FLD_MOD(r, 1, 9, 9);
-	//dsi_write_reg(dsidev, DSI_VC_CTRL(0), r);
-	//dsi_write_reg(dsidev, DSI_VC_CTRL(0) , 0x20800790);
 
 	word_count = dssdev->panel.timings.x_res * dssdev->ctrl.pixel_size / 8;
 	header = FLD_VAL(0, 31, 24) | /* ECC */
@@ -5410,7 +5403,7 @@ void dsi_videomode_panel_preinit(struct omap_dss_device *dssdev)
 	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
 
 	/* Send null packet to start DDR clock  */
-	//dsi_write_reg(dsidev, DSI_VC_SHORT_PACKET_HEADER(0), 0);
+	dsi_write_reg(dsidev, DSI_VC_SHORT_PACKET_HEADER(0), 0);
 	msleep(1);
 }
 EXPORT_SYMBOL(dsi_videomode_panel_preinit);
