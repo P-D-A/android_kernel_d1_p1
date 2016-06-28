@@ -451,7 +451,6 @@ static int omap_rpmsg_find_vqs(struct virtio_device *vdev, unsigned nvqs,
 		err = -EINVAL;
 		goto put_mbox;
 	}
-
 	/* register for remoteproc events */
 	rpdev->rproc_nb.notifier_call = rpmsg_rproc_events;
 	rproc_event_register(rpdev->rproc, &rpdev->rproc_nb);
@@ -612,9 +611,11 @@ static int __init omap_rpmsg_ini(void)
 	phys_addr_t psize = omap_ipu_get_mempool_size(
 						OMAP_RPROC_MEMPOOL_STATIC);
 
+#ifdef CONFIG_CMA
 	if (!omap_ion_rpmsg_allocate_memory()) {
 		return -ENOMEM;
 	}
+#endif
 
 	for (i = 0; i < ARRAY_SIZE(omap_rpmsg_vprocs); i++) {
 		struct omap_rpmsg_vproc *rpdev = &omap_rpmsg_vprocs[i];
@@ -664,7 +665,9 @@ static void __exit omap_rpmsg_fini(void)
 		unregister_virtio_device(&rpdev->vdev);
 	}
 
+#ifdef CONFIG_CMA
 	omap_ion_rpmsg_free_memory();
+#endif
 }
 module_exit(omap_rpmsg_fini);
 
