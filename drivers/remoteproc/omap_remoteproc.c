@@ -437,7 +437,6 @@ static irqreturn_t omap_rproc_watchdog_isr(int irq, void *p)
 	return IRQ_HANDLED;
 }
 #endif
-
 static inline int omap_rproc_start(struct rproc *rproc, u64 bootaddr)
 {
 	struct device *dev = rproc->dev;

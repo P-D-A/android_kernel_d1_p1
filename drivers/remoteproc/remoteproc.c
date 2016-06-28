@@ -1351,10 +1351,12 @@ static struct rproc *_rproc_get(const char *name, bool use_refcounting)
 	/* rproc_put() calls should wait until async loader completes */
 	init_completion(&rproc->firmware_loading_complete);
 
+#ifdef CONFIG_CMA
 	if (!omap_ion_ipu_allocate_memory()) {
 		ret = NULL;
 		goto unlock_mutex;
 	}
+#endif
 
 	dev_info(dev, "powering up %s\n", name);
 
@@ -1475,7 +1477,9 @@ static void _rproc_put(struct rproc *rproc, bool use_refcounting)
 			}
 		}
 
+#ifdef CONFIG_CMA
 		omap_ion_ipu_free_memory();
+#endif
 	}
 
 	if (rproc->state == RPROC_CRASHED)
@@ -1732,8 +1736,10 @@ static int rproc_runtime_suspend(struct device *dev)
 	_event_notify(rproc, RPROC_POS_SUSPEND, NULL);
 	mutex_unlock(&rproc->pm_lock);
 
-        /* Unload firmware and free memory */
+#ifdef CONFIG_CMA
+	/* Unload firmware and free memory */
 	schedule_work(&rproc->unload_work);
+#endif
 
 	return 0;
 abort:
@@ -1828,7 +1834,9 @@ int rproc_register(struct device *dev, const char *name,
 	mutex_init(&rproc->secure_lock);
 	mutex_init(&rproc->tlock);
 	INIT_WORK(&rproc->error_work, rproc_error_work);
+#ifdef CONFIG_CMA
 	INIT_WORK(&rproc->unload_work, rproc_unload_work);
+#endif
 	BLOCKING_INIT_NOTIFIER_HEAD(&rproc->nbh);
 
 	rproc->state = RPROC_OFFLINE;

@@ -19,7 +19,7 @@ config REMOTE_PROC_AUTOSUSPEND_TIMEOUT
 	depends on REMOTE_PROC_AUTOSUSPEND
 	default 0
 	help
-          If set, this will override default timeout for remoteproc
+	  If set, this will override default timeout for remoteproc
 	  autosuspend.
 
 # can't be tristate, due to omap_device_* and omap_hwmod_* dependency
