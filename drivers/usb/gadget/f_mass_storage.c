@@ -1980,7 +1980,7 @@ static int check_command(struct fsg_common *common, int cmnd_size,
 	return 0;
 }
 
-extern int get_suitestate();
+extern int get_suitestate(void);
 static int do_get_suitestate(struct fsg_common *common, struct fsg_buffhd *bh)
 {
     u8 *buf = (u8* )bh->buf;
