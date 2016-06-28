@@ -782,7 +782,7 @@ __tagtable(ATAG_BOARDID, parse_tag_boardid);
 
 static char g_logctl_value = 0;
 
-char get_logctl_value()
+char get_logctl_value(void)
 {
     return g_logctl_value;
 }
