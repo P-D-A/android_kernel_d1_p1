@@ -211,7 +211,11 @@ void __iomem * __arm_ioremap_pfn_caller(unsigned long pfn,
 	 * 'memory' regions, flush the TLB, etc - see DMA allocation parts of the original
 	 * CMA implementation. */
 	is_pfn_valid = pfn_valid(pfn);
-	if (is_pfn_valid && get_pageblock_migratetype(pfn_to_page(pfn)) != MIGRATE_CMA) {
+	if (is_pfn_valid
+#ifdef CONFIG_CMA
+		&& get_pageblock_migratetype(pfn_to_page(pfn)) != MIGRATE_CMA
+#endif
+		) {
 		WARN_ON(is_pfn_valid);
 		return NULL;
 	}
