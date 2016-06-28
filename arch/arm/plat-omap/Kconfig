@@ -298,7 +298,7 @@ endchoice
 config ION_OMAP_TILER_DYNAMIC_ALLOC
 	bool "Force dynamic allocation of tiler memory."
 	depends on ION_OMAP
-	default y
+	default n
 
 config ION_OMAP_IPU_MEM_IOBUFS_SIZE
 	int "Carveout size override for IPU_MEM_IOBUFS section of Ducati firmware."
