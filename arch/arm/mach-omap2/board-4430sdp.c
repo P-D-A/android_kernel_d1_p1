@@ -547,7 +547,7 @@ void keyboard_mux_init(void)
 }
 #endif
 
-static void omap_bluetooth_init()
+static void omap_bluetooth_init(void)
 {
     int error;
 
@@ -2545,7 +2545,7 @@ static void omap4_sdp4430_wifi_init(void)
     platform_device_register(&omap_vwlan_device);
 }
 
-static void configGPS()
+static void configGPS(void)
 {
     omap_mux_init_gpio(GPIO_GPS_POWER, OMAP_PIN_OUTPUT);
     omap_mux_init_gpio(GPIO_GPS_RESET, OMAP_PIN_OUTPUT);
