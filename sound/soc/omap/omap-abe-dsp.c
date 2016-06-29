@@ -2476,7 +2476,7 @@ static int aess_trigger(struct snd_pcm_substream *substream, int cmd)
 	struct abe_data *abe = snd_soc_platform_get_drvdata(platform);
 	struct snd_soc_dai *dai = rtd->cpu_dai;
 
-	dev_dbg(dai->dev, "%s: %s %d\n", __func__, dai->name);
+	dev_dbg(dai->dev, "%s: %s\n", __func__, dai->name);
 
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
