@@ -353,14 +353,13 @@ static void DoDisconnect(void)
         SiiMhlTxNotifyDsHpdChange( 0 );
         MhlTxDrvProcessDisconnection();
 }
+
 static int Int1Isr( void )
 {
     uint8_t readRsen = 0;
-    uint8_t    reg71 = ReadBytePage0(0x71);
-    uint8_t    rsen = I2C_ReadByte(PAGE_0_0X72, 0x09) & BIT2;
+    uint8_t reg71 = ReadBytePage0(0x71);
+    uint8_t rsen = 0;
     TX_DEBUG_PRINT (("Drv: rsen=0x%x************************************************\n",rsen));
-
-
 
     if (reg71)
     {
@@ -376,16 +375,10 @@ static int Int1Isr( void )
         readRsen = 1;
         RsenInterruptCount++;
         TX_DEBUG_PRINT (("Drv: reg71 & BIT5. Low Count:%d RsenCount :%d\n",RsenSampleLowCount,RsenInterruptCount));
-        //PROBE_INVERT;
-        //HalTimerSet(TIMER_TO_DO_RSEN_DEGLITCH, T_SRC_RSEN_DEGLITCH);
 
         delay_in_ms = 100L;
 
         hr_timer_RSEN_DEGLITCH_ktime = ktime_set( 0, MS_TO_NS(delay_in_ms) );
-
-        //hrtimer_init( &hr_timer_RSEN_DEGLITCH, CLOCK_MONOTONIC, HRTIMER_MODE_REL );
-
-        //hr_timer_RSEN_DEGLITCH.function = &timer_RSEN_DEGLITCH_callback;
 
         printk(KERN_INFO  "Starting timer to fire in T_SRC_RSEN_DEGLITCH:%ldms (%ld)\n", delay_in_ms, jiffies );
 
@@ -393,13 +386,9 @@ static int Int1Isr( void )
 
     }
 
-//Loop:
-    //if(HalTimerExpired( TIMER_TO_DO_RSEN_CHK ))
     if(timer_RSEN_CHK_Expired)
     {
-        //HalTimerSet(TIMER_TO_DO_RSEN_DEGLITCH,0); // clear the other timer.
         timer_RSEN_DEGLITCH_Expired=true;
-        //SiiOsDebugChannelEnable(SII_OSAL_DEBUG_TX);
         if (RsenSampleHighCount < 1)
         {
             TX_DEBUG_PRINT (("Drv: T_SRC_RXSENSE_CHK expired. High Count:%d\n",RsenSampleHighCount));
@@ -411,7 +400,7 @@ static int Int1Isr( void )
         {
             if ((readRsen) || (RsenInterruptCount >0 ))
             {
-            uint8_t    rsen = I2C_ReadByte(PAGE_0_0X72, 0x09) & BIT2;
+                rsen = I2C_ReadByte(PAGE_0_0X72, 0x09) & BIT2;
                 TX_DEBUG_PRINT (("Drv: T_SRC_RXSENSE_CHK expired. Low Count:%d\n",RsenSampleLowCount));
                 if ( rsen )
                 {
@@ -428,24 +417,21 @@ static int Int1Isr( void )
             }
         }
     }
-    else
+     else
     {
-       // if (HalTimerExpired(TIMER_TO_DO_RSEN_DEGLITCH))
        if ( timer_RSEN_DEGLITCH_Expired)
         {
             readRsen = 1;
         }
         if (readRsen)
         {
-        uint8_t        rsen  = I2C_ReadByte(PAGE_0_0X72, 0x09) & BIT2;
+            rsen  = I2C_ReadByte(PAGE_0_0X72, 0x09) & BIT2;
             TX_DEBUG_PRINT (("Drv: sampling RSEN. High Count:%d\n",RsenSampleHighCount));
-            //HalTimerSet(TIMER_TO_DO_RSEN_DEGLITCH, T_SRC_RSEN_DEGLITCH);
             if ( rsen )
             {
                 RsenSampleHighCount++;
                 if (RsenSampleHighCount > 1)
                 {
-                    //HalTimerSet( TIMER_TO_DO_RSEN_CHK,0 ); // clear this timer
                     timer_RSEN_CHK_Expired = true;
                     RsenInterruptCount=0;
 
@@ -456,12 +442,6 @@ static int Int1Isr( void )
                 RsenSampleHighCount=0;
             }
         }
-        /*
-        HalTimerWait(10);
-        int i;
-        TX_DEBUG_PRINT (("Drv: i:%d**********************************************\n",i));
-        goto Loop;
-        */
     }
 
     return I2C_ACCESSIBLE;
