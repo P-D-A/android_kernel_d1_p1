@@ -2334,7 +2334,6 @@ static int twl6040_probe(struct snd_soc_codec *codec)
 	struct twl6040_data *priv;
 	struct twl4030_codec_audio_data *pdata = dev_get_platdata(codec->dev);
 	struct twl6040_jack_data *jack;
-       struct twl6040_codec *twl6040;
        u8 val;
 	int ret = 0;
 
@@ -2438,21 +2437,12 @@ static int twl6040_probe(struct snd_soc_codec *codec)
 		}
 
 	wake_lock_init(&priv->wake_lock, WAKE_LOCK_SUSPEND, "twl6040");
-    /*    
-	ret = twl6040_request_irq(codec->control_data, TWL6040_IRQ_PLUG,
-				  twl6040_audio_handler, IRQF_NO_SUSPEND,
-				  "twl6040_irq_plug", codec);
-	if (ret) {
-		dev_err(codec->dev, "PLUG IRQ request failed: %d\n", ret);
-		goto irq_err;
-	}
-    */
 
     /*  Add headset plug interrupt.  */
     ret = twl6040_request_irq(codec->control_data, TWL6040_IRQ_PLUG,
                                twl6040_audio_plug_handler, IRQF_NO_SUSPEND,
                                "twl6040_irq_plug", codec);
-    if (ret) 
+    if (ret)
     {
         dev_err(codec->dev, "PLUG IRQ request failed: %d\n", ret);
         goto irq_err;
@@ -2462,25 +2452,12 @@ static int twl6040_probe(struct snd_soc_codec *codec)
     ret = twl6040_request_irq(codec->control_data, TWL6040_IRQ_HOOK,
                                 twl6040_audio_hook_handler, IRQF_NO_SUSPEND,
                                 "twl6040_irq_hook", codec);
-    if (ret) 
+    if (ret)
     {
         dev_err(codec->dev, "HOOK IRQ request failed: %d\n", ret);
         printk(KERN_ERR"@HT: Rigister hook failed!");
-        goto irq_err;
+        goto hfirq_err;
     }
-
-
-    /*    
-	ret = twl6040_request_irq(codec->control_data, TWL6040_IRQ_HF,
-				twl6040_audio_handler, 0,
-				"twl6040_irq_hf", codec);
-	if (ret) {
-		dev_err(codec->dev, "HF IRQ request failed: %d\n", ret);
-		goto hfirq_err;
-	}
-    */
-
-	
 
     delay_codec = codec;
     twl6040_audio_headset_delay_work_init();
@@ -2489,11 +2466,9 @@ static int twl6040_probe(struct snd_soc_codec *codec)
 
       twl6040_set_hook_enable(0);
 
-    twl6040 = delay_codec->control_data;
-    val = twl6040_reg_read(twl6040, TWL6040_REG_INTMR);
     /*enable HF short detection interupt */
-    val =val&0xEF;
-    twl6040_reg_write(twl6040, TWL6040_REG_INTMR,val);
+    val = twl6040_reg_read(delay_codec->control_data, TWL6040_REG_INTMR) & 0xEF;
+    twl6040_reg_write(delay_codec->control_data, TWL6040_REG_INTMR, val);
     esdstatus = 0;
 	/* power on device */
 	ret = twl6040_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
@@ -2512,9 +2487,7 @@ static int twl6040_probe(struct snd_soc_codec *codec)
 	return 0;
 
 bias_err:
-    /*    
-	twl6040_free_irq(codec->control_data, TWL6040_IRQ_HF, codec);
-    */
+	twl6040_free_irq(codec->control_data, TWL6040_IRQ_HOOK, codec);
 hfirq_err:
 	twl6040_free_irq(codec->control_data, TWL6040_IRQ_PLUG, codec);
 irq_err:
@@ -2542,9 +2515,7 @@ static int twl6040_remove(struct snd_soc_codec *codec)
 
 	twl6040_set_bias_level(codec, SND_SOC_BIAS_OFF);
 	twl6040_free_irq(codec->control_data, TWL6040_IRQ_PLUG, codec);
-    /*    
-	twl6040_free_irq(codec->control_data, TWL6040_IRQ_HF, codec);
-    */
+
 	if (priv->vddhf_reg)
 		regulator_put(priv->vddhf_reg);
 	wake_lock_destroy(&priv->wake_lock);
