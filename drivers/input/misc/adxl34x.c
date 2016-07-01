@@ -226,7 +226,7 @@ struct adxl34x {
 	int (*write) (bus_device *, unsigned char, unsigned char);
 };
 
-static const struct adxl34x_platform_data adxl34x_default_init = {
+static void struct adxl34x_platform_data adxl34x_default_init = {
 	.tap_threshold = 35,
 	.tap_duration = 3,
 	.tap_latency = 20,
