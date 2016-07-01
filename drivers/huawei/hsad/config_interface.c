@@ -86,7 +86,7 @@ int get_usb_trim_value(void)
 
 int get_touchscreen_atmel_value(void)
 {
-	int value = 0;
+	bool value = 0;
 	bool ret = get_hw_config_bool("touchscreen/front", &value, NULL);
 	if( ret == true)
         {
