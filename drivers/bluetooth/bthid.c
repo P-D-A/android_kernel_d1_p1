@@ -76,10 +76,6 @@ static void bthid_ll_close(struct hid_device *hid)
 static int bthid_ll_hidinput_event(struct input_dev *dev, unsigned int type, 
                                    unsigned int code, int value)
 {
-    /*
-    printk("######## bthid_ll_hidinput_event: dev = %p, type = %d, code = %d, value = %d ########\n",
-           dev, type, code, value);
-    */
     return 0;
 }
 
@@ -90,7 +86,7 @@ static int bthid_ll_parse(struct hid_device *hid)
     struct bthid_ctrl *p_ctrl = hid->driver_data;
 
     printk("######## bthid_ll_parse: hid = %p ########\n", hid);
-    
+
     buf = kmalloc(p_ctrl->dscp_len, GFP_KERNEL);
     if (!buf)
     {
@@ -130,7 +126,7 @@ static int bthid_open(struct inode *inode, struct file *file)
     }
 
     file->private_data = p_dev;
-    
+
     printk("######## bthid_open: done ########\n");
     return 0;
 }
@@ -140,7 +136,7 @@ static int bthid_release(struct inode *inode, struct file *file)
     struct bthid_device *p_dev = file->private_data;
 
     printk("######## bthid_release: ########\n");
-    
+
     if (p_dev->hid) 
     {
         if (p_dev->hid->status == (HID_STAT_ADDED | HID_STAT_PARSED))
@@ -169,10 +165,6 @@ static ssize_t bthid_write(struct file *file, const char __user *buffer, size_t 
     unsigned char *buf;
     struct bthid_device *p_dev = file->private_data;
 
-    /*
-    printk("######## bthid_write: count = %d ########\n", count);
-    */
-
     if (p_dev->dscp_set == 0)
     {
         printk("bthid_write: Error:, HID report descriptor not configured\n");
@@ -198,14 +190,10 @@ static ssize_t bthid_write(struct file *file, const char __user *buffer, size_t 
 
     kfree(buf);
 
-    /*
-    printk("######## bthid_write: done ########\n");
-    */
-
     return 0;
 }
 
-static int bthid_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+static long bthid_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     int ret;
     struct bthid_ctrl *p_ctrl;
@@ -241,7 +229,7 @@ static int bthid_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned lo
         kfree(p_ctrl);
         return -EINVAL;
     }
-    
+
     p_dev->hid = hid_allocate_device();
     if (p_dev->hid == NULL)
     {
@@ -250,7 +238,7 @@ static int bthid_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned lo
         kfree(p_ctrl);
         return -ENOMEM;
     }
-    
+
     p_dev->hid->bus         = BUS_BLUETOOTH;
     p_dev->hid->vendor      = p_ctrl->vendor_id;
     p_dev->hid->product     = p_ctrl->product_id;
@@ -259,7 +247,6 @@ static int bthid_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned lo
     p_dev->hid->ll_driver   = &bthid_ll_driver;
     p_dev->hid->driver_data = p_ctrl;
 
-    // strcpy(p_dev->hid->name, "Broadcom Bluetooth HID");
     strncpy(p_dev->hid->name, p_ctrl->dev_name, BTHID_MAX_DEV_NAME_LEN);
 
     ret = hid_add_device(p_dev->hid);
@@ -319,7 +306,7 @@ static int __init bthid_init(void)
     }
 
     printk("######## bthid_init: done ########\n");
-    
+
     return ret;
 }
 
