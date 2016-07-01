@@ -14,101 +14,16 @@
  *
  */
 
- /*==============================================================================
-
-History
-Problem NO.         Name        Time         Reason
-=============================================================================*/
-
 #ifndef _TOUCH_PLATFORM_CONFIG_H
 #define _TOUCH_PLATFORM_CONFIG_H
 
 #define TOUCH_OMAP4430_INT_PIN 35
 #define TOUCH_OMAP4430_RESET_PIN  36
 
-/*jKF31740 Begin Atmel Touchscreen mXT224 */
-
 #ifdef CONFIG_TOUCHSCREEN_MXT224E_ATMEL
-
-#include <linux/atmel_qt602240.h> 
-
-static struct atmel_i2c_platform_data atmel_tp_platform_data = {
-    .version = 0x10,
-    .source = 0,
-    .abs_x_min = 0x00,
-    .abs_x_max = 539,//959,
-    .abs_y_min = 0x00,
-    .abs_y_max = 959,//539,
-    .abs_pressure_min = 0x00,
-    .abs_pressure_max = 255,
-    .abs_width_min = 0,
-    .abs_width_max = 255,
-    .gpio_irq = 35,
-    .power = NULL,
-    .config_T6 = {0, 0, 0, 0, 0,
-    0},
-    .config_T7 = {48, 255, 25},
-    .config_T8 = {39, 0, 20, 20, 0,
-    0, 255, 1, 0, 0},
-    .config_T9 = {139, 0, 0, 19, 11,
-    0, 32, 60, 2, 1,
-    0, 5, 2, 1, 5,
-    10, 10, 10, 191, 3,
-    27, 2, 13, 13, 12,
-    12, 128, 0, 128, 0,
-    0, 10, 0, 0, 0},
-    .config_T15 = {0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0},
-    .config_T19 = {0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0},
-    .config_T23 = {0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0},
-    .config_T25 = {0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 0},
-    .config_T40 = {0, 0, 0, 0, 0},
-    .config_T42 = {0, 0, 0, 0, 0,
-    0, 0, 0},
-    .config_T46 = {0, 3, 16, 32, 0,
-    0, 0, 0, 0},
-    .config_T47 = {0, 20, 50, 5, 2,
-    40, 40, 180, 0, 100},
-    .config_T48 = {1, 4, 66, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 6, 6,
-    0, 0, 100, 4, 64,
-    10, 0, 20, 5, 0,
-    38, 0, 20, 0, 0,
-    0, 0, 0, 0, 0,
-    50, 2, 3, 1, 0,
-    5, 10, 40, 0, 0,
-    0, 0, 0, 0, 0,
-    0, 0, 0, 3},
-    .object_crc = {0x41, 0x0e, 0x90},//CRC 
-    .cable_config = {70, 30, 32, 32},
-    .cable_config_T7 = {48, 255, 25},
-    .cable_config_T8 = {39, 0, 20, 20, 0,
-    0, 255, 1, 0, 0},
-    .cable_config_T9 = {139, 0, 0, 19, 11,
-    0, 32, 60, 2, 1,
-    0, 5, 2, 1, 5,
-    10, 10, 10, 191, 3,
-    27, 2, 13, 13, 12,
-    12, 128, 0, 128, 0,
-    0, 10, 0, 0, 0},
-    .noise_config = {70, 3, 35}, //temporary
-    .filter_level = {0, 0, 539, 539},
-    .GCAF_level = {8, 16, 24, 32, 40},
-};
+#include <linux/atmel_qt602240.h>
 #endif
-/*jKF31740 End Atmel Touchscreen mXT224 */
 
-
-/*jKF31740 Begin Synaptics Touchscreen RMI4 */
 #ifdef CONFIG_TOUCHSCREEN_RMI4_SYNAPTICS
 
 #include <linux/synaptics_i2c_rmi_1564.h>
@@ -141,6 +56,5 @@ struct synaptics_i2c_platform_data {
 };
 
 #endif
-/*jKF31740 End Synaptics Touchscreen RMI4 */
 
 #endif /*_TOUCH_PLATFORM_CONFIG_H */
