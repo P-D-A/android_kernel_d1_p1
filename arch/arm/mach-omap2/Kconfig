@@ -485,14 +485,20 @@ config ELPIDA_DDR_2G_S4
 	default n
 	help
 	  T0 Use SAMSUNG_DDR_4G_S4,Blaze use ELPIDA_DDR_2G_S4 for OMAP4.
-	  
-	  
+
 config SAMSUNG_DDR_4G_S4
 	bool "SAMSUNG_DDR_4G_S4"
 	depends on ARCH_OMAP4
 	default n
 	help
 	  T0 Use SAMSUNG_DDR_4G_S4,Blaze use ELPIDA_DDR_2G_S4 for OMAP4.
+
+config OVERCLOCK_SAMSUNG_DDR_4G_S4
+        bool "Overclocking SAMSUNG_DDR memory"
+        depends on SAMSUNG_DDR_4G_S4
+        default n
+        help
+          Samsung memory can overclock.
 
 config OMAP_TPS6236X
        bool
