@@ -1244,13 +1244,6 @@ static struct fixed_voltage_config sdp4430_vwlan = {
     .enabled_at_boot = 0,
     .init_data = &sdp4430_vmmc5,
 };
-static struct platform_device omap_vwlan_device = {
-    .name        = "reg-fixed-voltage",
-    .id        = 1,
-    .dev = {
-        .platform_data = &sdp4430_vwlan,
-               }
-};
 
 struct regulator *enable_power_for_device(struct device* dev , const char* id,int uV)
 {
