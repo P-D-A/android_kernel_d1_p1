@@ -16,13 +16,6 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-  
-/*==============================================================================
-History
- 
-Problem NO.               Name          Time              Reason
-==============================================================================*/
-
 
 #include <linux/module.h>
 #include <linux/delay.h>
@@ -37,7 +30,6 @@ Problem NO.               Name          Time              Reason
 #include <linux/regulator/consumer.h>
 #include <linux/mutex.h>
 #include <linux/i2c.h>
-//#include <plat/display.h>
 #include <video/omapdss.h>
 #include <plat/toshiba-dsi-panel.h>
 #include <linux/lcd_tuning.h>
@@ -180,7 +172,6 @@ struct panel_config {
 	int type;
 
 	struct omap_video_timings timings;
-	//struct omap_dsi_video_timings dsi_video_timings;
 
 	struct {
 		unsigned int sleep_in;
@@ -210,7 +201,6 @@ static struct panel_config panel_configs[] = {
 	 .timings = {
 		     .x_res = 720,
 		     .y_res = 1280,
-		     //.pixel_clock = 69300,
 		     .pixel_clock = 81300,
 	/* the blanking perdiods specified here are not considered.
            the values are set in dsi.c */
@@ -444,7 +434,7 @@ static char cabc_user_parameter[3] = {0xbe, 0xff, 0x0f};
 static ssize_t mdv20_bl_set_locked(int level, struct omap_dss_device *dssdev)
 {
     int r = 0;
-    
+
     if (level < 0)
         level = 0;
     else if (level > 255)
@@ -649,8 +639,6 @@ static ssize_t mdv20_signal_mode_show(struct device *dev,
 	printk("HARII:: SIGNALK_MODE = %d \n",(int)data_buf[0]);	
 
 	return 0;
-
-	//	snprintf(buf, PAGE_SIZE, "%d\n", data_buf[0]);
 }
 
 static ssize_t mdv20_restart_video_xfer(struct device *dev,
@@ -746,10 +734,8 @@ static ssize_t store_cabc_mode(struct device *dev,
 static DEVICE_ATTR(power_mode, S_IRUGO, mdv20_power_mode_show, NULL);
 static DEVICE_ATTR(address_mode, S_IRUGO, mdv20_address_mode_show, NULL);
 static DEVICE_ATTR(display_mode, S_IRUGO, mdv20_display_mode_show, NULL);
-// static DEVICE_ATTR(signal_mode, S_IRUGO, mdv20_signal_mode_show, NULL);
 static DEVICE_ATTR(num_dsi_errors, S_IRUGO, mdv20_num_errors_show, NULL);
 static DEVICE_ATTR(restart_video_xfer, S_IRUGO, mdv20_restart_video_xfer, NULL);
-//static DEVICE_ATTR(hw_revision, S_IRUGO, mdv20_hw_revision_show, NULL);
 /* 0002-add-sysfs-entry-for-diaplay-on-off-for-testing-inter.patch */
 static DEVICE_ATTR(display_off, S_IRUGO |S_IWUSR, NULL, store_mdv20_displayoff);
 /* Patch end */
@@ -762,10 +748,8 @@ static struct attribute *mdv20_attrs[] = {
 	&dev_attr_power_mode.attr,
 	&dev_attr_address_mode.attr,
 	&dev_attr_display_mode.attr,
-	// &dev_attr_signal_mode.attr,
 	&dev_attr_num_dsi_errors.attr,
 	&dev_attr_restart_video_xfer.attr,
-	//&dev_attr_hw_revision.attr,
 	/* 0002-add-sysfs-entry-for-diaplay-on-off-for-testing-inter.patch */
 	&dev_attr_display_off.attr,
 	/* Patch end */
@@ -1365,7 +1349,7 @@ static int mdv20_probe(struct omap_dss_device *dssdev)
 			&dssdev->dev, dssdev, &sp_bl_ops, &props);
 
 	if (IS_ERR(bldev)) {
-		PTR_ERR(bldev);
+		ret = PTR_ERR(bldev);
 		goto err_bl;
 	}
 	mdv20data->bldev = bldev;
@@ -1379,12 +1363,10 @@ static int mdv20_probe(struct omap_dss_device *dssdev)
 	tuning_dev = lcd_tuning_dev_register(0, &mdv20_ops, dssdev);
 	p_tuning_dev = tuning_dev;
 	if (IS_ERR(tuning_dev)) {
-		PTR_ERR(tuning_dev);
+		ret = PTR_ERR(tuning_dev);
 		goto err;
 	}
 	/* END:   Added by meijinfang, 2011/12/22 */
-//	mdv20_bl_update_status(bldev);
-
 /* patch end */
 
 	ret = sysfs_create_group(&dssdev->dev.kobj, &mdv20_attr_group);
@@ -1394,8 +1376,6 @@ static int mdv20_probe(struct omap_dss_device *dssdev)
 	return ret;
 
 	/* 0004-Added-the-backlight-adjustment-support.patch */
-	//backlight_device_unregister(bldev);
-
 err_bl:
 /* patch end */
 err_wq:
@@ -1445,8 +1425,6 @@ static int _mdv20_config(struct omap_dss_device *dssdev, struct params *pars)
 
 err:
 	dev_err(&dssdev->dev, "error while enabling panel, issuing HW reset \n");
-
-	//mdv20_hw_reset(dssdev);//if enable this ,system will locked in 	mutex_lock(&p_dsi->lock); by z00174260
 	omapdss_dsi_display_disable(dssdev, true, false);
 	return r;
 }
@@ -1455,21 +1433,10 @@ err:
 static int mdv20_power_on(struct omap_dss_device *dssdev)
 {
 	struct mdv20_data *mdv20data = dev_get_drvdata(&dssdev->dev);
-	//struct toshiba_dsi_panel_data *panel_data = get_panel_data(dssdev);
 	int ret = 0;
 
 	/* At power on the first vsync has not been received yet */
 	dssdev->first_vsync = false;
-
-//	if (mdv20data->enabled != 1)
-	{
-		/* enable 5.4V */
-	//	gpio_set_value(panel_data->chip_pwr_save,0);
-	//	gpio_set_value(panel_data->v5_4_enable,1);
-
-		//gpio_direction_output(157,1);
-		//gpio_direction_output(158,0);
-
 		ret = omapdss_dsi_display_enable(dssdev);
 		if (ret) {
 			dev_err(&dssdev->dev, "failed to enable DSI\n");
@@ -1484,8 +1451,7 @@ static int mdv20_power_on(struct omap_dss_device *dssdev)
 
 		/* do extra job to match kozio registers */
 		dsi_videomode_panel_preinit(dssdev);
-		//printk("HARII: %s videomode _panel_preinit completed !!! \n",__func__);
-   		omapdss_dsi_vc_enable_hs(dssdev, 0, false);
+		omapdss_dsi_vc_enable_hs(dssdev, 0, false);
 
                 /* Toshiba Bridge Constraint */
 		msleep(10);
@@ -1514,7 +1480,6 @@ static int mdv20_power_on(struct omap_dss_device *dssdev)
 					}
 					ret = _mdv20_config(dssdev, params);
 				}
-				//lcdd_parse_deinit(params);
 			}
 			else
 			{		
@@ -1528,7 +1493,7 @@ static int mdv20_power_on(struct omap_dss_device *dssdev)
 
 			ret =mdv20_config(dssdev);
 #endif
-		if(ret) 
+		if(ret)
 		{
 			dev_err(&dssdev->dev, "Failed toconfig mdv20\n");
 			goto err;
@@ -1540,11 +1505,8 @@ static int mdv20_power_on(struct omap_dss_device *dssdev)
 		 * 0x3e - 24bit
 		 */
 		dsi_video_mode_enable(dssdev, 0x3e);
-		//dsi_videomode_panel_postinit(dssdev);
 		}
-		//printk("HARII: %s videomode _panel_postinit completed !!! \n",__func__);
 		mdv20data->enabled = 1;
-	}
 
 err:
 	return ret;
@@ -1557,7 +1519,6 @@ err:
  */
 int mdv20_config(struct omap_dss_device *dssdev)
 {
-	//struct mdv20_data *mdv20data = dev_get_drvdata(&dssdev->dev);
 	struct mdv20_data *md = dev_get_drvdata(&dssdev->dev);
 	u8 buf[80];
 	int r;
@@ -1967,10 +1928,7 @@ R63308:
     return 0;
 err:
 	dev_err(&dssdev->dev, "error while enabling panel, issuing HW reset \n");
-
-	//mdv20_hw_reset(dssdev);//if enable this ,system will locked in 	mutex_lock(&p_dsi->lock); by z00174260
 	omapdss_dsi_display_disable(dssdev, true, false);
-
 	return r;
 }
 EXPORT_SYMBOL(mdv20_config);
@@ -1980,11 +1938,10 @@ static void mdv20_power_off(struct omap_dss_device *dssdev)
 	struct mdv20_data *mdv20data = dev_get_drvdata(&dssdev->dev);
     /*  Reason: Modify for color enhance lcd  */
     struct toshiba_dsi_panel_data *panel_data = get_panel_data(dssdev);	
-	//msleep(10);
 
 	mdv20data->enabled = 0;
 	omapdss_dsi_display_disable(dssdev, true, false);
-    
+
 	if(!dssdev->skip_init)
 	{
 		/* disable 5.4V */
@@ -2026,25 +1983,15 @@ static int mdv20_start(struct omap_dss_device *dssdev)
 static void mdv20_stop(struct omap_dss_device *dssdev)
 {
 	struct mdv20_data *mdv20data = dev_get_drvdata(&dssdev->dev);
-	struct toshiba_dsi_panel_data *panel_data = get_panel_data(dssdev);
 
 	mutex_lock(&mdv20data->lock);
 	mdv20_cancel_esd_work(dssdev);
-
 	dispc_enable_channel(dssdev->channel, dssdev->type, false);
-
 	dsi_bus_lock(dssdev);
-
 	mdv20_power_off(dssdev);
-
 	dsi_bus_unlock(dssdev);
-
 	dssdev->state = OMAP_DSS_DISPLAY_SUSPENDED;
-
 	mutex_unlock(&mdv20data->lock);
-
-	//udelay(1500);
-	//gpio_set_value(panel_data->reset_gpio, 1);	
 }
 
 static void mdv20_disable(struct omap_dss_device *dssdev)
