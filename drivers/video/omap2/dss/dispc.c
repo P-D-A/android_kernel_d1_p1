@@ -606,7 +606,9 @@ err_dss_get:
 
 void dispc_runtime_put(void)
 {
+#if 0
 	struct powerdomain *dss_powerdomain = pwrdm_lookup("dss_pwrdm");
+#endif
 	mutex_lock(&dispc.runtime_lock);
 
 	if (--dispc.runtime_count == 0) {
