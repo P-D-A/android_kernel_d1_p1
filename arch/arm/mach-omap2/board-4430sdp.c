@@ -2339,12 +2339,6 @@ static __initdata struct emif_device_details emif_devices = {
 #define board_wkup_mux NULL
 #endif
 
-static struct wl12xx_platform_data omap4_sdp4430_wlan_data __initdata = {
-    .irq = OMAP_GPIO_IRQ(GPIO_WIFI_IRQ),
-    .board_ref_clock = WL12XX_REFCLOCK_26,
-    .board_tcxo_clock = WL12XX_TCXOCLOCK_26,
-};
-
 #if 0
 #ifdef CONFIG_TOUCHSCREEN_RMI4_SYNAPTICS
 
