@@ -2339,27 +2339,6 @@ static __initdata struct emif_device_details emif_devices = {
 #define board_wkup_mux NULL
 #endif
 
-
-static void omap4_sdp4430_wifi_mux_init(void)
-{
-    omap_mux_init_gpio(GPIO_WIFI_IRQ, OMAP_PIN_INPUT |
-                OMAP_PIN_OFF_WAKEUPENABLE);
-    omap_mux_init_gpio(GPIO_WIFI_PMENA, OMAP_PIN_OUTPUT);
-
-    omap_mux_init_signal("sdmmc5_cmd.sdmmc5_cmd",
-                OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-    omap_mux_init_signal("sdmmc5_clk.sdmmc5_clk",
-                OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-    omap_mux_init_signal("sdmmc5_dat0.sdmmc5_dat0",
-                OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-    omap_mux_init_signal("sdmmc5_dat1.sdmmc5_dat1",
-                OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-    omap_mux_init_signal("sdmmc5_dat2.sdmmc5_dat2",
-                OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-    omap_mux_init_signal("sdmmc5_dat3.sdmmc5_dat3",
-                OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP);
-}
-
 static struct wl12xx_platform_data omap4_sdp4430_wlan_data __initdata = {
     .irq = OMAP_GPIO_IRQ(GPIO_WIFI_IRQ),
     .board_ref_clock = WL12XX_REFCLOCK_26,
