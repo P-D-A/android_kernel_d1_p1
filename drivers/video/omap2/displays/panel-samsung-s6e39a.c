@@ -15,13 +15,6 @@
  * You should have received a copy of the GNU General Public License along with
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
-/*==============================================================================
-修订历史
-
-问题单号          修改人      日期         原因
-==============================================================================*/
-
 
 #include <linux/module.h>
 #include <linux/delay.h>
@@ -37,22 +30,18 @@
 #include <linux/regulator/consumer.h>
 #include <linux/mutex.h>
 
-
 #include <video/omapdss.h>
 #include <plat/huawei-dsi-panel.h>
 #include <linux/device.h>
 #include <plat/clock.h>
 #include <linux/clk.h>
-/*  Reason: lcd-compatible  */
 #include <linux/panel_detect.h>
 
 #ifdef CONFIG_LCDD
 #include "lcdd.h"
 #endif
-/* END:   Added by meijinfang, 2011/10/24 */
 
 #include <linux/lcd_tuning.h>
-/* END:   Added by meijinfang, 2011/12/22 */
 
 /* DSI Virtual channel. Hardcoded for now. */
 #define TCH 0
@@ -89,27 +78,21 @@
 #define SP_ESD_CHECK_PERIOD	msecs_to_jiffies(5000)
 
 #define PANEL_TAG  "AMOLED: "
-//#define PANEL_DEBUG /*调试时打开，入库时关闭-------just used for debug*/
-#ifdef PANEL_DEBUG	    
+#ifdef PANEL_DEBUG
 #define PANEL_DBG(fmt, ...) \
-	    printk(PANEL_TAG pr_fmt(fmt), ##__VA_ARGS__)	    
+    printk(PANEL_TAG pr_fmt(fmt), ##__VA_ARGS__)
 #else
-#define PANEL_DBG(fmt, ...) do{ \
-	}while(0)
+#define PANEL_DBG(fmt, ...) do { \
+    } while(0)
 #endif
 
 /*Adjust the source scanning direction by register F7H*/
-/* END:   Modified by meijinfang, 2011/11/22 */
-
 static irqreturn_t sp_te_isr(int irq, void *data);
 static void sp_te_timeout_work_callback(struct work_struct *work);
 static int _sp_enable_te(struct omap_dss_device *dssdev, bool enable);
 
 static int sp_panel_reset(struct omap_dss_device *dssdev);
 
-
-/*  Reason: For the can't-wakeup issue.  */
-//#define RESUME_SUSPEND_TEST
 static int first_failed_times = 0;
 static int resume_failed_times = 0;
 static int sp_resume(struct omap_dss_device *dssdev);
@@ -283,8 +266,6 @@ struct sp_data {
 	unsigned long	hw_guard_end;	/* next value of jiffies when we can
 					 * issue the next sleep in/out command
 					 */
-	unsigned long	hw_guard_wait;	/* max guard time in jiffies */
-
 	struct omap_dss_device *dssdev;
 
 	bool enabled;
@@ -339,21 +320,6 @@ static void sp_ulps_work(struct work_struct *work);
 
 /*  Reason: Modify for disorder screen when wakeup  */
 static void sp_frame_work(struct work_struct *work);
-static void hw_guard_start(struct sp_data *pd, int guard_msec)
-{
-	pd->hw_guard_wait = msecs_to_jiffies(guard_msec);
-	pd->hw_guard_end = jiffies + pd->hw_guard_wait;
-}
-
-static void hw_guard_wait(struct sp_data *pd)
-{
-	unsigned long wait = pd->hw_guard_end - jiffies;
-
-	if ((long)wait > 0 && wait <= pd->hw_guard_wait) {
-		set_current_state(TASK_UNINTERRUPTIBLE);
-		schedule_timeout(wait);
-	}
-}
 
 static int sp_dcs_read_1(struct sp_data *pd, u8 dcs_cmd, u8 *data)
 {
@@ -381,45 +347,6 @@ static int sp_dcs_write_1(struct sp_data *pd, u8 dcs_cmd, u8 param)
 	buf[0] = dcs_cmd;
 	buf[1] = param;
 	return dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 2);
-}
-
-static int sp_sleep_in(struct sp_data *pd)
-
-{
-	u8 cmd;
-	int r;
-
-	hw_guard_wait(pd);
-
-	cmd = DCS_SLEEP_IN;
-	r = dsi_vc_dcs_write_nosync(pd->dssdev, pd->channel, &cmd, 1);
-	if (r)
-		return r;
-
-	hw_guard_start(pd, 120);
-
-	if (pd->panel_config->sleep.sleep_in)
-		msleep(pd->panel_config->sleep.sleep_in);
-
-	return 0;
-}
-
-static int sp_sleep_out(struct sp_data *pd)
-{
-	int r;
-
-	hw_guard_wait(pd);
-
-	r = sp_dcs_write_0(pd, DCS_SLEEP_OUT);
-	if (r)
-		return r;
-
-	hw_guard_start(pd, 120);
-
-	if (pd->panel_config->sleep.sleep_out)
-		msleep(pd->panel_config->sleep.sleep_out);
-
-	return 0;
 }
 
 static int sp_get_id(struct sp_data *pd,
@@ -701,8 +628,7 @@ static int sp_bl_set_locked(struct omap_dss_device *dssdev,int level)
                {0xfa, 0x02, 0x51, 0x39, 0x55, 0xb0, 0xc7, 0xa0, 0xb0, 0xc5,
                  0xb8, 0xc2, 0xcb, 0xc1, 0x94, 0xa0, 0x8f, 0xad, 0xb3, 0xa6,
                  0x00, 0xe0, 0x00, 0xd7, 0x01, 0x08} /* 300*/
-               /* END:   Modified by meijinfang, 2012/1/31 */
-	};	
+	};
 
        num_bl_steps = (sizeof(bl_data)/sizeof(bl_data[0]));
 
@@ -713,28 +639,25 @@ static int sp_bl_set_locked(struct omap_dss_device *dssdev,int level)
 
     level = (level - 20) * 255 / (255 - 20);
     range = 255 / num_bl_steps;
-    /* END:   Modified by meijinfang, 2012/3/15 */
-        index = level / range;
+    index = level / range;
 
         if (index >= num_bl_steps)
-                index = num_bl_steps - 1;	
-//dev_dbg( "%s update brightness to %d\n", __func__,index);
+                index = num_bl_steps - 1;
+
         msleep(5);//add for BTA error
-	r = dsi_vc_dcs_write(pd->dssdev, pd->channel, bl_data[index], sizeof(bl_data[index]));	
+	r = dsi_vc_dcs_write(pd->dssdev, pd->channel, bl_data[index], sizeof(bl_data[index]));
 	if (r)
-		goto err;	
+		goto err;
 
 	/* GAMMA set update enable */
 	r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, sizeof(buf));
 	msleep(5);//add for BTA error
 	if (r)
-			goto err;
-	 
+	    goto err;
 	return 0;
 
 err:
-        PANEL_DBG("Failed to set AMOLED BL !!! \n"); 
-        
+        PANEL_DBG("Failed to set AMOLED BL !!! \n");
 	return r;
 }
 static int sp_bl_update_status(struct backlight_device *dev)
@@ -935,9 +858,6 @@ static ssize_t store_cabc_mode(struct device *dev,
 
 	if (pd->enabled) {
 		dsi_bus_lock(dssdev);
-		/*
-		if (!pd->cabc_broken)
-			taal_dcs_write_1(ix, DCS_WRITE_CABC, i); */
 		dsi_bus_unlock(dssdev);
 	}
 
@@ -1098,8 +1018,6 @@ static ssize_t sp_show_ulps_timeout(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%u\n", t);
 }
 
-
-
 /*  Reason: For the can't-wakeup issue.  */
 #ifdef RESUME_SUSPEND_TEST
 static ssize_t show_test1(struct device *dev,
@@ -1146,11 +1064,9 @@ static ssize_t show_lcd_info(struct device *dev,
     return strlen(lcd_info)+1;
 }
 
-/*Gamma high light(gamma1.9/200)*/
 static char samsung_s6e39a_gamma19_set[26] = {0xfa, 0x02, 0x4f, 0x31, 0x57, 0xb5, 
                     0xcf, 0xa5, 0xbc, 0xd1, 0xc2, 0xc8, 0xd2, 0xc6, 0xa1, 0xad, 0x9a, 
                     0xbc, 0xc5, 0xb5, 0x00, 0xc3, 0x00, 0xba, 0x00, 0xe5};
-/* END:   Modified by meijinfang, 2012/1/31 */
 
 /*Gamma update*/
 static char samsung_s6e39a_gamma_update[2] = {0xfa, 0x03};
@@ -1186,7 +1102,7 @@ int sp_set_gamma(struct lcd_tuning_dev *ltd, enum lcd_gamma gamma)
                              ARRAY_SIZE(samsung_s6e39a_gamma19_set));
         if (r)
             goto err;
-        
+
         r = dsi_vc_dcs_write(pd->dssdev, TCH, samsung_s6e39a_gamma_update, 
                              ARRAY_SIZE(samsung_s6e39a_gamma_update));
         if (r)
@@ -1203,12 +1119,11 @@ int sp_set_gamma(struct lcd_tuning_dev *ltd, enum lcd_gamma gamma)
 
     dsi_bus_unlock(pdev);
     return 0;
-    
+
     err:
         dsi_bus_unlock(pdev);
         return r;
 }
-/* END:   Added by meijinfang, 2011/12/22 */
 
 /*reason: add for ACL fouction */
 int sp_set_acl (struct lcd_tuning_dev *ltd, enum amoled_acl acl)
@@ -1238,19 +1153,19 @@ int sp_set_acl (struct lcd_tuning_dev *ltd, enum amoled_acl acl)
     }
 
     dsi_bus_lock(pdev);
-    if(acl == ACL_ON)			
-	{		
-		buf[0]  = 0xc0;			
-		buf[1]  = 0x01;              
+    if(acl == ACL_ON)
+	{
+		buf[0]  = 0xc0;
+		buf[1]  = 0x01;
 	    r=dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 2);
 
         if (r)
             goto err0;
-	}		
-	else if(acl == ACL_OFF)			
-	{    			
-		buf[0]  = 0xc0;			
-		buf[1]  = 0x00;                   
+	}
+	else if(acl == ACL_OFF)
+	{
+		buf[0]  = 0xc0;
+		buf[1]  = 0x00;
 		r=dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 2);
         if (r)
             goto err0;
@@ -1258,7 +1173,7 @@ int sp_set_acl (struct lcd_tuning_dev *ltd, enum amoled_acl acl)
 	
 	dsi_bus_unlock(pdev);
 	return 0;
-	  
+
 err0:
 	dsi_bus_unlock(pdev);
 	return r;
@@ -1282,7 +1197,7 @@ static ssize_t store_window(struct device *dev,
         return count;
     printk("%s enter %s\n",__func__,buf);
 
-	r = sscanf(buf,"%d %d %d %d",&sc,&ec,&sp,&ep);
+    r = sscanf(buf,"%d %d %d %d",&sc,&ec,&sp,&ep);
     printk("0x%04x 0x%04x 0x%04x 0x%04x\n",sc,ec,sp,ep);
 
 
@@ -1578,23 +1493,9 @@ static int sp_init_regulator(struct device *dev)
 	return 0;
 }
 
-static void sp_uninit_regulator(void)
-{
-	if(regulator_sp_panel)
-	{
-		consumer_regulator_disable(regulator_sp_panel);
-		put_consumer_regulator(regulator_sp_panel);
-		regulator_sp_panel = NULL;
-	}
-}
-
 static struct lcd_tuning_ops sp_tuning_ops = {
-    //.set_gamma = sp_set_gamma,
-    /* END:   Deleted by meijinfang, 2012/5/15 */
-/*reason: add for ACL fouction */
     .set_acl = sp_set_acl,
 };
-/* END:   Added by meijinfang, 2011/12/22 */
 
 static int sp_probe(struct omap_dss_device *dssdev)
 {
@@ -1693,10 +1594,6 @@ static int sp_probe(struct omap_dss_device *dssdev)
 	else
 		props.max_brightness = 127;
 
-		/*
-		bldev = backlight_device_register(dev_name(&dssdev->dev),
-			&dssdev->dev, dssdev, &sp_bl_ops, &props);
-		*/
 		PANEL_DBG("--->Lintar dssdev->name =%s dev_name =%s\n",dssdev->name,dev_name(&dssdev->dev));
 	props.type = BACKLIGHT_RAW;
 	        bldev = backlight_device_register(dssdev->name,
@@ -1835,9 +1732,6 @@ static void sp_remove(struct omap_dss_device *dssdev)
 	/* reset, to be sure that the panel is in a valid state */
 	sp_hw_reset(dssdev);
 
-	//free_regulators(pd->panel_config->regulators,
-			//pd->panel_config->num_regulators);
-
 	kfree(pd);
 }
 
@@ -1848,8 +1742,8 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     int r;
     struct sp_data *pd = dev_get_drvdata(&dssdev->dev);
 
-    
-    /* Etc Condition Set1 */    
+
+    /* Etc Condition Set1 */
     buf[0] = 0xF0;
     buf[1] = 0x5A;
     buf[2] = 0x5A;
@@ -1862,8 +1756,8 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
      * the command fails, retry once
      */
     if (r) {
-		dev_err(&dssdev->dev,"^-^^-^HT:(%s) Write f0 failed first time!\n",__FUNCTION__);
-		first_failed_times++;
+        dev_err(&dssdev->dev,"^-^^-^HT:(%s) Write f0 failed first time!\n",__FUNCTION__);
+        first_failed_times++;
         r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 3);
         if (r)
             goto err;
@@ -1976,13 +1870,13 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel,  buf, 2);
     if (r)
         goto err;
-        
+
     buf[0]  = 0xb0;
     buf[1]  = 0x04;
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel,  buf, 2);
     if (r)
         goto err;
-    
+
     buf[0]  = 0xf2;
     buf[1]  = 0x4d;
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel,  buf, 2);
@@ -2006,8 +1900,8 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     buf[2] = 0x00;
     buf[3] = 0x16;
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 4);
-	if (r)
-		goto err;
+    if (r)
+        goto err;
 
     buf[0] = 0xB2;
     buf[1] = 0x06;
@@ -2015,8 +1909,8 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     buf[3] = 0x06;
     buf[4] = 0x06;
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 5);
-	if (r)
-		goto err;
+    if (r)
+        goto err;
 
     /*sleep out*/
     buf[0]  = 0x11;
@@ -2028,15 +1922,15 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     /* END:   Modified by meijinfang, 2011/11/22 */
 
 /*reason: add for ACL fouction to mactch the standerd sequence*/
-	#if 0
+#if 0
     /*TE ON*/
     buf[0]  = 0x35;
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 1);
-	
+
     if (r)
         goto err;
     /* END:   Added by meijinfang, 2011/11/22 */
-   #endif
+#endif
 
 #ifdef PANEL_INVERT_XY
     buf[0] = 0x36;
@@ -2048,7 +1942,7 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 2);
     if (r)
         goto err;
-    
+
     /*reason: add for ACL fouction to mactch the standerd sequence*/
     /*TE ON*/
     buf[0]  = 0x35;
@@ -2078,7 +1972,7 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     buf[3]  = 0x03;
     buf[4]  = 0xbf;
 #endif
-    
+
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel,  buf, 5);
     if (r)
         goto err;
@@ -2104,7 +1998,7 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 3);
 	if (r)
 		goto err;
-//    #if 0
+
     /*ACL setting 70%*/
     buf[0]  = 0xc1;
     buf[1]  = 0x47;
@@ -2136,13 +2030,8 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
     buf[27]  = 0x2d;
     buf[28]  = 0x00;
     r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 29);
-	if (r)
-		goto err;
-    /* END:   Added by meijinfang, 2011/11/22 */
-//    #endif
-    /* END:   Modified by meijinfang, 2012/1/5 */
-
-/*  Reason:Remove the pixel off action and do it in resume for yellow leftline  */
+    if (r)
+        goto err;
 
     udelay(32);
     /* Display on */
@@ -2155,53 +2044,6 @@ static int samsung_lcd_config(struct omap_dss_device *dssdev)
 
     err:
         return r;
-}
-static int samsung_lcd_convert_window(struct omap_dss_device *dssdev)
-{
-	u8 buf[8];
-	int r;
-
-	#ifdef PANEL_INVERT_XY
-	buf[0] = 0x36;
-	buf[1] = 0xc0;
-	#else
-	buf[0] = 0x36;
-	buf[1] = 0x00;
-	#endif
-	r = dsi_vc_dcs_write(dssdev, dssdev->channel, buf, 2);
-	if (r)
-		goto err;
-
-	/* memory window setting1 */
-	buf[0]  = 0x2a;
-	buf[1]  = 0x00;
-	buf[2]  = 0x1e;
-	buf[3]  = 0x02;
-	buf[4]  = 0x39;
-	r = dsi_vc_dcs_write(dssdev, dssdev->channel, buf, 5);
-	if (r)
-		goto err;
-
-	buf[0]  = 0x2b;
-	#ifdef PANEL_INVERT_XY
-	buf[1]  = 0x00;
-	buf[2]  = 0x40;
-	buf[3]  = 0x03;
-	buf[4]  = 0xff;
-	#else
-	buf[1]  = 0x00;
-	buf[2]  = 0x00;
-	buf[3]  = 0x03;
-	buf[4]  = 0xbf;
-	#endif
-	r = dsi_vc_dcs_write(dssdev, dssdev->channel, buf, 5);
-	if (r)
-		goto err;
-
-	return 0;
-
-err:
-	return r;
 }
 
 #ifdef CONFIG_LCDD
@@ -2417,63 +2259,6 @@ static void sp_power_off(struct omap_dss_device *dssdev)
 	pd->enabled = 0;
 }
 
-static int sp_start(struct omap_dss_device *dssdev)
-{
-	struct sp_data *pd = dev_get_drvdata(&dssdev->dev);
-	struct sp_dsi_panel_data *panel_data = get_panel_data(dssdev);
-	int r = 0;
-
-
-	dsi_bus_lock(dssdev);
-
-	r = sp_power_on(dssdev);
-
-#if 0
-{
-	u8 id1, id2, id3;
-
-
-	if (pd->enabled) {
-		PANEL_DBG("HARII:: Get Panel ID %s!!! \n",__func__);
-		// dsi_bus_lock(ix);
-		r = sp_get_id(ix, &id1, &id2, &id3);
-		// dsi_bus_unlock(ix);
-	} 
-	PANEL_DBG("HARII::: panel id.. %s : id1=%d,id2=%d,id3=%d \n",__func__,id1,id2,id3);
-}
-#endif
-	dsi_bus_unlock(dssdev);
-
-	if (r) {
-		dev_dbg(&dssdev->dev, "enable failed\n");
-		dssdev->state = OMAP_DSS_DISPLAY_DISABLED;
-	} else {
-		dssdev->state = OMAP_DSS_DISPLAY_ACTIVE;
-		if (panel_data->use_esd_check)
-			queue_delayed_work(pd->esd_wq, &pd->esd_work,
-					SP_ESD_CHECK_PERIOD);
-	}
-
-	return r;
-}
-
-static void sp_stop(struct omap_dss_device *dssdev)
-{
-	struct sp_data *pd = dev_get_drvdata(&dssdev->dev);
-
-	cancel_delayed_work(&pd->esd_work);
-
-    /*  Reason: Modify for disorder screen when wakeup  */
-	cancel_work_sync(&pd->frame_work);
-
-	
-	dsi_bus_lock(dssdev);
-
-	sp_power_off(dssdev);
-
-	dsi_bus_unlock(dssdev);
-}
-
 static void sp_disable(struct omap_dss_device *dssdev)
 {
 	struct sp_data *pd = dev_get_drvdata(&dssdev->dev);
@@ -2549,9 +2334,6 @@ static int sp_suspend(struct omap_dss_device *dssdev)
  	struct clk *tmp_dss_fck = omap_clk_get_by_name("dss_fck");
  	
 	dev_dbg(&dssdev->dev, "suspend\n");
-    /*reason: modified for ACL fouction */ 
-	//g_suspendstate = true;
-    /* END:   Added by meijinfang, 2011/12/22 */
 	if (!boot_first)
 	{
        /*reason: modified for ACL fouction */ 
@@ -2642,53 +2424,6 @@ err:
 #define GRAM_H		1024
 #define BYTES_PER_TIME	120
 #define BYTES_PER_PIXEL	3
-static int sp_zero_gram(struct sp_data *pd)
-{
-	int i;
-	int r = 0;
-	int writeTimes;
-	u8 buf[BYTES_PER_TIME + 1];
-
-    /* set display window to the gram size: 600*1024 */
-	buf[0]  = 0x2a;
-	buf[1]  = 0x00;
-	buf[2]  = 0x00;
-	buf[3]  = 0x02;
-	buf[4]  = 0x57;
-	r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 5);
-	if(r)
-        return r;
-
-	buf[0]  = 0x2b;
-	buf[1]  = 0x00;
-	buf[2]  = 0x00;
-	buf[3]  = 0x03;
-	buf[4]  = 0xff;
-	r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 5);
-	if(r)
-        return r;
-
-    /* reset to column and frame start */
-	buf[0]=0x2c;
-	r = dsi_vc_dcs_write(pd->dssdev, pd->channel, buf, 1);
-	if(r)
-        return r;
-
-	msleep(1);//add for BTA error
-	memset(buf, 0, sizeof(buf));
-	buf[0] = 0x3c;
-	writeTimes = GRAM_H * GRAM_W * BYTES_PER_PIXEL / BYTES_PER_TIME;
-
-	omapdss_dsi_vc_enable_hs(pd->dssdev, pd->channel, true);
-	for(i=0; i<writeTimes; i++)
-	{
-		dsi_vc_dcs_write_nosync(pd->dssdev, pd->channel, buf, BYTES_PER_TIME + 1);
-	}
-	omapdss_dsi_vc_enable_hs(pd->dssdev, pd->channel, false);
-
-    return 0;
-}
-/* END:   Added by meijinfang, 2012/2/3 */
 
 /*  Reason:Add for yellow leftline  */
 static int sp_resume_command(struct omap_dss_device *dssdev)
@@ -2789,15 +2524,7 @@ static int sp_resume_command(struct omap_dss_device *dssdev)
     }
     #endif
 
-    /*r = sp_zero_gram(pd);
-    if(r)
-    {
-        dev_err(&dssdev->dev, "(%s) sp_zero_gram failed !\n",__FUNCTION__);
-        goto err;
-    }*/
-
     udelay(32);
-    /* END:   Modified by meijinfang, 2012/2/3 */
 
     /* memory window setting2 */
     buf[0] = 0x35;
@@ -2987,7 +2714,6 @@ static int sp_update(struct omap_dss_device *dssdev,
 		omapdss_dsi_vc_enable_hs(dssdev, pd->channel, false);
 
 		msleep(25);
-		//samsung_lcd_convert_window(dssdev);
 		omapdss_dsi_vc_enable_hs(dssdev, pd->channel, true);
 		dsi_bus_unlock(dssdev);
 		mutex_unlock(&pd->lock);
@@ -3073,23 +2799,6 @@ err:
 	mutex_unlock(&pd->lock);
 	return r;
 }
-
-/*  Reason:Add for yellow leftline  */
-static int sp_double_update(struct omap_dss_device *dssdev,
-                                u16 x, u16 y, u16 w, u16 h)
-{
-    int r;
-    if(sp_frame_num < 5)
-
-    r = sp_update(dssdev,x,y,w,h);
-    if(sp_frame_num < 5)
-    {
-        sp_frame_num++;
-       // r = sp_update(dssdev,x,y,w,h);
-    }
-    return r;
-}
-
 
 /*  Reason: Add for system crashed when resume and suspend sys fast.  */
 
