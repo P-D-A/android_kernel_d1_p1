@@ -2069,7 +2069,9 @@ static void sdp4430_lcd_init(void)
 {
     u32 reg = 0;
     u32 temp = 0;
+#if 0
     int status = 0;
+#endif
 
     /* Enable 3 lanes in DSI1 module, disable pull down */
     reg = omap4_ctrl_pad_readl(OMAP4_CTRL_MODULE_PAD_CORE_CONTROL_DSIPHY);
