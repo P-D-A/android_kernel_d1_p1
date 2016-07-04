@@ -1,4 +1,3 @@
-
 /************************************************************
 FileName: panel_detect.c
 
@@ -7,19 +6,7 @@ Copyright (C), 1988-1999, Huawei Tech. Co., Ltd.
 Author: hantao(00185954)  | Version : 0.1 | Date: 2011-10-21
 
 Description:     Compatibility of differents LCDs.
-
-Function List:   
-
-History:   
-
-     <author>  <time>   <version >   <desc> 
-
 ************************************************************/
-/*==============================================================================
-History
- 
-Problem NO.               Name          Time              Reason  
-==============================================================================*/
 
 #include <linux/kernel.h>
 #include <linux/gpio.h>
@@ -30,7 +17,6 @@ Problem NO.               Name          Time              Reason
 #include <linux/delay.h>
 #include <linux/vmalloc.h>
 #include <linux/string.h>
-//#include <plat/display.h>
 #include <video/omapdss.h>
 #include <linux/panel_detect.h>
 #include <hsad/config_interface.h>
@@ -51,7 +37,6 @@ Problem NO.               Name          Time              Reason
 
 static int panel_get_lcd_number(void);
 static void delete_others_unsupport_main_lcd(const char *name,struct omap_dss_board_info *sdp4430_dss_data);
-static bool is_lcd_on(char *name);
 
 static char current_lcd[PANEL_LCD_NAME_LENGTH] = "Default: NO LCD";
 static char config_name[PANEL_LCD_NAME_LENGTH] = "Default: NO LCD";
@@ -85,10 +70,10 @@ static bool panel_get_lcd_config_name(void)
     }
 }
 
-bool  panel_is_the_panel_supported(const char *name)
+bool panel_is_the_panel_supported(const char *name)
 {
     int num;
-	
+
     num = panel_get_lcd_number();
     HD_PRINT("Num = %d \n",num);
     if(num <= 0)
@@ -105,7 +90,6 @@ bool  panel_is_the_panel_supported(const char *name)
 
 bool panel_set_support_devices(struct omap_dss_board_info *sdp4430_dss_data)
 {
-    bool ret=false;
     int i;
 
     if (sdp4430_dss_data == NULL)
