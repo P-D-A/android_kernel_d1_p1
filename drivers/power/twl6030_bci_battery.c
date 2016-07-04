@@ -1382,6 +1382,8 @@ static void twl6030battery_current(struct twl6030_bci_device_info *di)
 }
 
 #endif
+
+#if HUAWEI_DISABLE_TWL6030_CHARGER
 /*
  * Setup the twl6030 BCI module to enable backup
  * battery charging.
@@ -1400,6 +1402,7 @@ static int twl6030backupbatt_setup(void)
 
 	return ret;
 }
+#endif
 
 /*
  * Setup the twl6030 BCI module to measure battery
@@ -2978,9 +2981,9 @@ static int __devinit twl6030_bci_battery_probe(struct platform_device *pdev)
 	struct twl4030_bci_platform_data *pdata = pdev->dev.platform_data;
 	struct twl6030_bci_device_info *di;
 
+        int ret= 0;
 #if HUAWEI_DISABLE_TWL6030_CHARGER
-	int irq;
-	int ret;
+	int irq = 0;
 	u8 controller_stat = 0;
 	u8 chargerusb_ctrl1 = 0;
 	u8 hw_state = 0;
@@ -2988,8 +2991,6 @@ static int __devinit twl6030_bci_battery_probe(struct platform_device *pdev)
 #endif
 
 	int low_bat_flag = 0;
-    int ret= 0;
-    u8 reg = 0;
 
 	if (!pdata) {
 		dev_dbg(&pdev->dev, "platform_data not available\n");
