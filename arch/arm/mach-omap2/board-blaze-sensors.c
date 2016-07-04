@@ -15,10 +15,6 @@
  * GNU General Public License for more details.
  *
  */
- /*============================================================================================
-  history
-
-  ============================================================================================*/
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
@@ -117,19 +113,6 @@ static struct platform_device blaze_proximity_device = {
 	.dev		= {
 		.platform_data = &omap_sfh7741_data,
 	},
-};
-
-static struct cma3000_platform_data cma3000_platform_data = {
-	.def_poll_rate = 200,
-	.fuzz_x = 25,
-	.fuzz_y = 25,
-	.fuzz_z = 25,
-	.g_range = CMARANGE_8G,
-	.mode = CMAMODE_MEAS400,
-	.mdthr = 0x8,
-	.mdfftmr = 0x33,
-	.ffthr = 0x8,
-	.irqflags = IRQF_TRIGGER_HIGH,
 };
 
 static void omap_cma3000accl_init(void)
