@@ -534,9 +534,11 @@ static struct omap_board_mux board_mux[] __initdata = {
  *
  * Same devices installed on EMIF1 and EMIF2
  */
+#if defined(CONFIG_ELPIDA_DDR_2G_S4)
 static __initdata struct emif_device_details emif_devices_4470 = {
 	.cs0_device = &lpddr2_elpida_4G_S4_dev,
 };
+#endif
 
 static void omap4_tablet_wifi_mux_init(void)
 {
