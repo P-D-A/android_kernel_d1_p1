@@ -158,10 +158,6 @@ static struct i2c_board_info __initdata blaze_bus4_sensor_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("hmc5843", 0x1e),
 	},
-	//{
-		//I2C_BOARD_INFO("cma3000_accl", 0x1c),
-		//.platform_data = &cma3000_platform_data,
-	//},
 #endif
 };
 

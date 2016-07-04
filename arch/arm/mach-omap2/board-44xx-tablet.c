@@ -671,13 +671,6 @@ static void __init omap_tablet_init(void)
 	if (omap_rev() == OMAP4430_REV_ES1_0)
 		package = OMAP_PACKAGE_CBL;
 	omap4_mux_init(board_mux, NULL, package);
-/*
-	if (cpu_is_omap447x())
-		omap_emif_setup_device_details(&emif_devices_4470,
-					       &emif_devices_4470);
-	else
-		omap_emif_setup_device_details(&emif_devices, &emif_devices);
-*/
 	omap_board_config = tablet_config;
 	omap_board_config_size = ARRAY_SIZE(tablet_config);
 	tablet_rev = omap_init_board_version(0);

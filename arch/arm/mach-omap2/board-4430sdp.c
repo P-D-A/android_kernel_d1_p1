@@ -382,9 +382,6 @@ void keypad_pad_wkup(int enable)
 
 }
 
-
-
-
 static struct omap4_keypad_platform_data sdp4430_keypad_data = {
     .keymap_data        = &sdp4430_keymap_data,
     .rows            = 8,
@@ -394,9 +391,6 @@ static struct omap4_keypad_platform_data sdp4430_keypad_data = {
 #endif
 
 static struct gpio_led sdp4430_gpio_leds[] = {
-//del some lines  not used
-//del .gpio  and use get_gpio_num_by_name
-/* select the correct gpio used in this project wkf40768 */
     {
         .name    = "blue",
         .default_trigger = "timer",
@@ -445,7 +439,7 @@ static struct platform_device sdp4430_leds_gpio = {
         .platform_data = &sdp4430_led_data,
     },
 };
-//add new code for board not viva_t1
+
 static struct gpio_led sdp4430_dmtimer_leds[] = {
 
     {
@@ -495,8 +489,6 @@ void keyboard_mux_init(void)
             OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
     omap_mux_init_signal("kpd_col1.kpd_col1",
             OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
-    //omap_mux_init_signal("kpd_col2.kpd_col2",
-                //OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
 #ifndef CONFIG_HUAWEI_MHL_SII9244
     omap_mux_init_signal("kpd_col2.kpd_col2",
                 OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
@@ -505,8 +497,6 @@ void keyboard_mux_init(void)
             OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
     omap_mux_init_signal("kpd_col4.kpd_col4",
             OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
-//    omap_mux_init_signal("kpd_col5.kpd_col5",
-//                OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
     omap_mux_init_signal("gpmc_a23.kpd_col7",
             OMAP_WAKEUP_EN | OMAP_MUX_MODE1);
     omap_mux_init_signal("gpmc_a22.kpd_col6",
@@ -676,8 +666,6 @@ static struct touchkey_platform_data touchkey_data = {
 };
 #endif
 
-
-
 /* TODO: handle suspend/resume here.
  * Upon every suspend, make sure the wilink chip is capable enough to wake-up the
  * OMAP host.
@@ -746,7 +734,7 @@ static void bluetooth_power_vdd_control(int channel,int on)
     int ret = 0;
 
     pr_debug("%s: in channel(%d) on(%d)",__FUNCTION__,channel,on);
-	 
+
     if(on){
         bt_regulater[channel] = regulator_get(NULL, channel_str[channel]);
         if(bt_regulater[channel])
@@ -756,7 +744,7 @@ static void bluetooth_power_vdd_control(int channel,int on)
                 pr_err("%s: regulator_enable failed",__FUNCTION__);
             else
                 pr_debug("%s: regulator_enable ok",__FUNCTION__);
-			
+
             ret = suspend_set_state_ext(bt_regulater[channel] ,true);
             if(0!=ret)
                 pr_err("%s: suspend_set_state_ext failed",__FUNCTION__);
@@ -847,14 +835,14 @@ void twl_suspend_power_control(unsigned char device,int on)
         mask |= 1<<device;
     else
         mask &= ~(1<<device);
-    
+
     if((mask_old == mask) || (mask_old&&mask))  // equal or both not zero means power state not change
     {
         pr_debug("\n%s:power state not change mask(0x%x)\n",__FUNCTION__,mask);        
         mutex_unlock(&lock);  
         return;
     }
-    
+
     pr_debug("\n%s:change power state mask(0x%x)",__FUNCTION__,mask);
 
     bluetooth_power_vdd_control(1,on);//VDD_2V1 first
@@ -863,6 +851,7 @@ void twl_suspend_power_control(unsigned char device,int on)
     mutex_unlock(&lock);  
 }
 EXPORT_SYMBOL(twl_suspend_power_control);
+
 void bluetooth_power_up(void)
 {
     bluetooth_power_clk_control(1);//32k clk
@@ -879,38 +868,37 @@ void bluetooth_power_up(void)
 #endif
 }
 EXPORT_SYMBOL(bluetooth_power_up);
+
 extern void bluesleep_set_suspend_bit(int on);
 static int bluetooth_power(int on)
 {
     if(on){
         twl_suspend_power_control(0,on);
-        
-        pr_debug("%s: on",__FUNCTION__);
-         gpio_set_value(GPIO_BT_EN, 1);
-         mdelay(10);
-         gpio_set_value(GPIO_BT_RST, 1);
-         mdelay(10);
 
+        pr_debug("%s: on",__FUNCTION__);
+        gpio_set_value(GPIO_BT_EN, 1);
+        mdelay(10);
+        gpio_set_value(GPIO_BT_RST, 1);
+        mdelay(10);
 
         omap_mux_init_signal("kpd_row2.gpio_3", OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE3|OMAP_WAKEUP_EN);
-	    
-	 bluesleep_set_suspend_bit(0);
-         //plat_uart_enable();
+
+        bluesleep_set_suspend_bit(0);
     }
     else{
         pr_debug("%s: off",__FUNCTION__);
         gpio_set_value(GPIO_BT_RST, 0);
         gpio_set_value(GPIO_BT_EN, 0);
 
-        twl_suspend_power_control(0,on);  	
+        twl_suspend_power_control(0,on);
         omap_mux_init_signal("kpd_row2.gpio_3",OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE3);
 
-	bluesleep_set_suspend_bit(1);
-        //plat_uart_disable();
+        bluesleep_set_suspend_bit(1);
     }
 
     return 0;
 }
+
 static struct platform_device wl128x_device = {
     .name        = "kim",
     .id        = -1,
@@ -925,6 +913,7 @@ static struct platform_device btwilink_device = {
 static struct twl4030_madc_platform_data twl6030_gpadc = {
     .irq_line = -1,
 };
+
 static struct platform_device btbcm_device = {
     .name = "bt_power",
     .id = -1,
@@ -1019,7 +1008,7 @@ struct xmd_platform_data huawei_xmd_platform_data ={
 
         .hsi_cawake_safe_pinmux = {
             .muxname = "usbb1_ulpitll_clk.safe_mode",
-            .muxval = OMAP_PIN_INPUT_PULLDOWN | /* // DTSxx20110719xx y00185015 20110721 Modify // .muxval = OMAP_PIN_INPUT_PULLUP | */ \
+            .muxval = OMAP_PIN_INPUT_PULLDOWN |
                 OMAP_PIN_OFF_NONE | \
                 OMAP_PIN_OFF_WAKEUPENABLE,
         },
@@ -1070,13 +1059,14 @@ static struct platform_device sdp4430_xmm_boot_device = {
     },
 };
 
-#endif  //#ifdef CONFIG_MACH_OMAP_XMM
+#endif
 
 #if 0
 static struct twl4030_madc_platform_data twl6030_madc = {
     .irq_line = -1,
 };
 #endif
+
 static struct platform_device twl6030_madc_device = {
     .name   = "twl6030_madc",
     .id = -1,
@@ -1085,7 +1075,6 @@ static struct platform_device twl6030_madc_device = {
     },
 };
 static struct platform_device *sdp4430_devices[] __initdata = {
-//wkf40768 added for have changed the led-gpio
     &sdp4430_leds_gpio,
     &sdp4430_leds_pwm,
     &sdp4430_leds_dmtimer,
@@ -1093,7 +1082,7 @@ static struct platform_device *sdp4430_devices[] __initdata = {
     &btwilink_device,
 #ifdef CONFIG_MACH_OMAP_XMM
     &sdp4430_xmm_boot_device,
-#endif  //#ifdef CONFIG_MACH_OMAP_XMM
+#endif
     &btbcm_device,
 
    &bcm_bluesleep_device,
@@ -1116,7 +1105,7 @@ static void __init omap_4430sdp_init_early(void)
 
 #ifdef CONFIG_HUAWEI_GPIO_KEYPAD
 static struct platform_device *huawei_devices[] __initdata = {
-    &huawei_keypad,//jKF31740
+    &huawei_keypad,
 };
 
 #endif
@@ -1190,10 +1179,8 @@ static struct omap2_hsmmc_info mmc[] = {
         .mmc        = 5,
         .caps        = MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA,
         .gpio_cd    = -EINVAL,
-        
         .gpio_wp        = -EINVAL,
-        
-        .ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21,   
+        .ocr_mask       = MMC_VDD_165_195|MMC_VDD_20_21,
     },
 #else
     {
@@ -1206,13 +1193,6 @@ static struct omap2_hsmmc_info mmc[] = {
     },
 #endif
     {}    /* Terminator */
-};
-
-static struct regulator_consumer_supply sdp4430_vaux_supply[] = {
-    {
-        .supply = "vmmc",
-        .dev_name = "omap_hsmmc.1",
-    },
 };
 
 #if 0
@@ -1244,10 +1224,6 @@ static struct regulator_consumer_supply sdp4430_cam2_supply[] = {
 };
 #endif
 
-static struct regulator_consumer_supply sdp4430_vcxio_supply[] = {
-    REGULATOR_SUPPLY("vdds_dsi", "omapdss_dss"),
-    REGULATOR_SUPPLY("vdds_dsi", "omapdss_dsi1"),
-};
 static struct regulator_consumer_supply omap4_sdp4430_vmmc5_supply = {
     .supply = "vmmc",
     .dev_name = "omap_hsmmc.4",
@@ -1475,9 +1451,6 @@ static void sii9244_reset(void)
     }
 
     gpio_request(gpio_mhl_rst, "mhl_rst");
-    // gpio_direction_output(GPIO_MHL_RST, 0);
-    // msleep(100);
-    // gpio_direction_output(GPIO_MHL_RST, 1);
     printk(KERN_INFO "%s:%d:Sii9244 reset successed\n", __func__,__LINE__);
 }
 
@@ -1525,14 +1498,6 @@ static struct i2c_board_info __initdata sdp4430_i2c_boardinfo[] = {
 
 static struct i2c_board_info __initdata sdp4430_i2c_2_boardinfo[] = {
 #if 0
-    /*{
-        I2C_BOARD_INFO("tm12xx_ts_primary", 0x4b),
-        .platform_data = &tm12xx_platform_data[0],
-    },
-    {
-        I2C_BOARD_INFO("picoDLP_i2c_driver", 0x1b),
-        .platform_data = &picodlp_platform_data[0],
-    },*/
 #ifdef CONFIG_TOUCHSCREEN_MXT224E_ATMEL
     {
         I2C_BOARD_INFO("atmel_qt602240", 0x4a),
@@ -1552,7 +1517,6 @@ static struct i2c_board_info __initdata sdp4430_i2c_2_boardinfo[] = {
 #ifdef CONFIG_KEYPAD_ATMEL_TOUCH
     {
         I2C_BOARD_INFO("qt1060", 0x12),
-        //.irq = OMAP_GPIO_IRQ(151),
     },
 #endif
 #endif
@@ -1588,8 +1552,6 @@ static int pn544_ven_reset(void)
 
     ret = gpio_direction_output(GPIO_NFC_VEN,0);
 
-
-
     printk("^-^^-^HT:Entry  pn544_ven_reset!\n");
 
     gpio_set_value(GPIO_NFC_VEN, 1);
@@ -1612,7 +1574,6 @@ static int pn544_interrupt_gpio_config(void)
     return 0;
 }
 
-
 static struct pn544_nfc_platform_data pn544_hw_data =
 {
     .pn544_ven_reset = pn544_ven_reset,
@@ -1620,6 +1581,7 @@ static struct pn544_nfc_platform_data pn544_hw_data =
 };
 
 #endif
+
 static struct i2c_board_info __initdata sdp4430_i2c_4_boardinfo[] = {
 /*  Reason: Modified for NFC  */
 #ifdef CONFIG_HUAWEI_NFC_PN544
@@ -1660,12 +1622,6 @@ static struct i2c_board_info __initdata sdp4430_i2c_4_boardinfo[] = {
     },
 #endif
 
-#ifdef HUAWEI_SENSORS_PROXIMITY_LIGHT_TMD2771
-    {
-        //I2C_BOARD_INFO("tmd2771", 0x39),
-    },
-#endif
-
 #ifdef CONFIG_INPUT_ADXL34X_I2C
     {
         I2C_BOARD_INFO("adxl34x", 0x53),
@@ -1684,7 +1640,6 @@ static struct i2c_board_info __initdata sdp4430_i2c_4_boardinfo[] = {
        {
         I2C_BOARD_INFO("mhl_Sii9244_page0", 0x39),
         .platform_data = &sii9244_platform_data,
-        //.irq = OMAP_GPIO_IRQ(GPIO_MHL_INT),
        },
     {
         I2C_BOARD_INFO("mhl_Sii9244_page1", 0x3D),
@@ -1786,21 +1741,12 @@ static int __init omap4_i2c_init(void)
     omap_register_i2c_bus_board_data(3, &sdp4430_i2c_3_bus_pdata);
     omap_register_i2c_bus_board_data(4, &sdp4430_i2c_4_bus_pdata);
 
-    //omap4_pmic_init("twl6030", &sdp4430_twldata);
-    //i2c_register_board_info(1, &sdp4430_i2c_boardinfo, 1);
-
         /* GPIO enable VBUS_USB GPIO init */
         gpio_request(BQ2416X_CHARGER_GPIO_45, "gpio_45_enable_charger");
         gpio_direction_output(BQ2416X_CHARGER_GPIO_45, 1);
-    //sdp4430_i2c_boardinfo[2].irq = gpio_to_irq(BQ2416X_CHARGER_INTR_IRQ_GPIO_49);
 
-//Modified i2c1 bus initialization process. defined pmic data struct separately
-/*
-    omap_register_i2c_bus(1, 400, sdp4430_i2c_boardinfo, ARRAY_SIZE(sdp4430_i2c_boardinfo));
-*/
     omap4_i2c_bus1_init();
 
-    //omap_register_i2c_bus(1, 400, sdp4430_i2c_boardinfo, ARRAY_SIZE(sdp4430_i2c_boardinfo));
     omap_register_i2c_bus(2, 100, sdp4430_i2c_2_boardinfo,
                 ARRAY_SIZE(sdp4430_i2c_2_boardinfo)); 
     omap_register_i2c_bus(3, 400, sdp4430_i2c_3_boardinfo,
@@ -1922,8 +1868,6 @@ static void sdp4430_hdmi_mux_init(void)
         pr_err("%s:Cannot request HDMI GPIOs %x \n", __func__, status);
 }
 
-
-
 #ifdef    CONFIG_KEYPAD_CYPRESS_TOUCH
     {
         I2C_BOARD_INFO(CYPRESS_TOUCHKEY_I2C_NAME, CY8C20236A_I2C_SLAVER_ADD),
@@ -2026,32 +1970,6 @@ static struct omap_dss_device huawei_sdp4430_lcd_device = {
     .channel        = OMAP_DSS_CHANNEL_LCD,
 };
 
-/*
-static struct omap_dss_device huawei_sdp4430_lcd2_device = {
-    .name            = "lcd2",
-    .driver_name        = "taal2_huawei",
-    .type            = OMAP_DISPLAY_TYPE_DSI,
-    .data            = &dsi2_panel,
-    .phy.dsi        = {
-        .clk_lane    = 1,
-        .clk_pol    = 0,
-        .data1_lane    = 2,
-        .data1_pol    = 0,
-        .data2_lane    = 3,
-        .data2_pol    = 0,
-        .div        = {
-            .lck_div    = 1,
-            .pck_div    = 5,
-            .regm        = 150,
-            .regn        = 17,
-            .regm_dispc    = 4,
-            .regm_dsi    = 4,
-            .lp_clk_div    = 8,
-        },
-    },
-    .channel        = OMAP_DSS_CHANNEL_LCD2,
-};
-*/
 #endif
 
 static struct sp_dsi_panel_data dsi_panel_sp = {
@@ -2075,7 +1993,7 @@ static struct omap_dss_device t0_lcd_device = {
                 .data1_pol      = 0,
                 .data2_lane     = 3,
                 .data2_pol      = 0,
-		},
+        },
         .clocks = {
             .dispc = {
             .channel = {
@@ -2094,20 +2012,6 @@ static struct omap_dss_device t0_lcd_device = {
 
                 .lp_clk_div    = 8,    /* LP Clock = 8.64 MHz */
                 .dsi_fclk_src    = OMAP_DSS_CLK_SRC_DSI_PLL_HSDIV_DSI,
-		/*
-		.tlpx	= 12,
-                .tclk = {
-                    .zero	 = 57,
-                    .prepare = 15,
-                    .trail	 = 15,
-                },
-                .ths = {
-                    .zero	 = 22,
-                    .prepare = 18,
-                    .exit	 = 32,
-                    .trail	 = 18,
-                },
-				*/
                 .offset_ddr_clk =1,
                 },
     },
@@ -2244,7 +2148,8 @@ static struct omap_dss_board_info sdp4430_dss_data = {
 #endif
 };
 
-#define BLAZE_FB_RAM_SIZE                SZ_16M /* 1920脳1080*4 * 2 */
+#define BLAZE_FB_RAM_SIZE                SZ_16M /* 1920x1080*4 * 2 */
+
 static struct omapfb_platform_data blaze_fb_pdata = {
     .mem_desc = {
         .region_cnt = 1,
@@ -2256,7 +2161,6 @@ static struct omapfb_platform_data blaze_fb_pdata = {
     },
 };
 
-
 static void sdp4430_lcd_init(void)
 {
     u32 reg = 0;
@@ -2265,10 +2169,6 @@ static void sdp4430_lcd_init(void)
 
     /* Enable 3 lanes in DSI1 module, disable pull down */
     reg = omap4_ctrl_pad_readl(OMAP4_CTRL_MODULE_PAD_CORE_CONTROL_DSIPHY);
-    //reg &= ~OMAP4_DSI1_LANEENABLE_MASK;
-    //reg |= 0x7 << OMAP4_DSI1_LANEENABLE_SHIFT;
-    //reg &= ~OMAP4_DSI1_PIPD_MASK;
-    //reg |= 0x7 << OMAP4_DSI1_PIPD_SHIFT;
     reg = OMAP4_DSI1_LANEENABLE_DATA|OMAP4_DSI1_PIPD_DATA_MASK;
 
     temp = !sdp4430_dss_data.default_device->phy.dsi.data1_lane; /*lane 1*/
@@ -2340,12 +2240,6 @@ static void omap_4430sdp_display_init(void)
     sdp4430_hdmi_mux_init();
     omapfb_set_platform_data(&blaze_fb_pdata);
     omap_display_init(&sdp4430_dss_data);
-
-/*
-	omap_mux_init_gpio(HDMI_GPIO_LS_OE, OMAP_PIN_OUTPUT);
-	omap_mux_init_gpio(HDMI_GPIO_CT_CP_HPD, OMAP_PIN_OUTPUT);
-	omap_mux_init_gpio(HDMI_GPIO_HPD, OMAP_PIN_INPUT_PULLDOWN);
-*/
 }
 
 #ifdef CONFIG_OMAP_MUX
@@ -2365,10 +2259,6 @@ static struct omap_board_mux board_mux[] __initdata = {
 #endif
 
 #ifndef  CONFIG_PANEL_TOSHIBA_MDV20
-    /* Mux gpio-157 to USBB2_ULPITLL_CLK pad which is used to enable
-    * power to modem circuit required when using HSI and EHCI drivers.
-    */
-    //OMAP4_MUX(USBB2_ULPITLL_CLK, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT),
     OMAP4_MUX(USBB2_ULPITLL_CLK, OMAP_MUX_MODE3 | OMAP_PULL_ENA | OMAP_INPUT_EN),
 #endif
 
@@ -2386,16 +2276,11 @@ static struct omap_board_mux board_mux[] __initdata = {
                      | OMAP_OFF_EN | OMAP_OFF_PULL_EN),
     OMAP4_MUX(GPMC_WAIT0, OMAP_MUX_MODE3 | OMAP_INPUT_EN),
     OMAP4_MUX(GPMC_NOE, OMAP_MUX_MODE1 | OMAP_INPUT_EN),
-    /*OMAP4_MUX(MCSPI1_CS1, OMAP_MUX_MODE3 | OMAP_PULL_ENA | OMAP_PULL_UP
-                    | OMAP_OFF_EN | OMAP_OFF_PULL_EN),*/
     OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PULL_ENA | OMAP_PULL_UP
                     | OMAP_OFF_EN | OMAP_OFF_PULL_EN),
     OMAP4_MUX(SDMMC5_CLK, OMAP_MUX_MODE0 | OMAP_INPUT_EN | OMAP_OFF_EN
                 | OMAP_OFF_PULL_EN),
 
-//#ifdef CONFIG_KEYPAD_ATMEL_TOUCH
-    //OMAP4_MUX(MCSPI4_CLK, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP),
-//#endif
 #ifdef CONFIG_HUAWEI_MHL_SII9244
     OMAP4_MUX(UNIPRO_TY2, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP),
 #endif
@@ -2513,7 +2398,6 @@ static struct attribute_group synaptics_properties_attr_group = {
 
 static void __init virtualkeys_init(void)
 {
-    //struct kobject *properties_kobj;
     extern struct kobject *prop_kobj_virtual;
     int ret;
     /* calibrate virtual key's coordinate */
@@ -2527,7 +2411,6 @@ static void __init virtualkeys_init(void)
                    "\n");
     }
 
-       //properties_kobj = kobject_create_and_add("board_properties", NULL);
     if (prop_kobj_virtual)
         ret = sysfs_create_group(prop_kobj_virtual,
                      &synaptics_properties_attr_group);
@@ -2536,14 +2419,6 @@ static void __init virtualkeys_init(void)
 }
 #endif
 #endif
-
-static void omap4_sdp4430_wifi_init(void)
-{
-    omap4_sdp4430_wifi_mux_init();
-    if (wl12xx_set_platform_data(&omap4_sdp4430_wlan_data))
-        pr_err("Error setting wl12xx data\n");
-    platform_device_register(&omap_vwlan_device);
-}
 
 static void configGPS(void)
 {
@@ -2670,13 +2545,7 @@ static int blaze_notifier_call(struct notifier_block *this,
             strcpy(sar_base + 0xA0C, "huawei_reboot");
             v |= OMAP4430_RST_GLOBAL_COLD_SW_MASK;
         }
-
-    /*omap4_prm_write_inst_reg(0xfff, OMAP4430_PRM_DEVICE_INST,
-            OMAP4_RM_RSTST);
-    omap4_prm_write_inst_reg(v, OMAP4430_PRM_DEVICE_INST, OMAP4_RM_RSTCTRL);
-    v = omap4_prm_read_inst_reg(WKUP_MOD, OMAP4_RM_RSTCTRL);*/
     }
-
     return NOTIFY_DONE;
 }
 
@@ -2758,7 +2627,6 @@ static void __init omap_4430sdp_init(void)
     pr_info("Configured modem_ipc: %s", modem_ipc);
     if (!strcmp(modem_ipc, "hsi")) {
         pr_info("Modem HSI detected, set USB port_mode[0] as UNUSED");
-        //blaze_modem_init(true);   //for blaze modem hsi_interface
 
         /* USBB1 I/O pads conflict with HSI1 port */
         usbhs_bdata.port_mode[0] = OMAP_USBHS_PORT_MODE_UNUSED;
@@ -2768,7 +2636,6 @@ static void __init omap_4430sdp_init(void)
     }
     else {
              pr_info("Modem HSI not detected");
-        //blaze_modem_init(false);
     }
     omap_4430sdp_display_init();
     omap4_ehci_ohci_init();
@@ -2799,16 +2666,12 @@ static void __init omap_4430sdp_init(void)
 #endif
 
     omap_dmm_init();
-    //omap_4430sdp_display_init();
 
 #if 0
     blaze_panel_init();
     blaze_keypad_init();
 #endif
-//	init_duty_governor();
-
         omap_bq27510battery_init();//add bq27510 bat_low gpio
-
 
     if (cpu_is_omap446x()) {
         /* Vsel0 = gpio, vsel1 = gnd */
@@ -2821,8 +2684,6 @@ static void __init omap_4430sdp_init(void)
     omap_enable_smartreflex_on_init();
         if (enable_suspend_off)
                 omap_pm_enable_off_mode();
-
-
 
 #ifdef CONFIG_MACH_OMAP_XMM
     status=xmd_board_init(&huawei_xmd_platform_data);   
