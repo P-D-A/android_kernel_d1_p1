@@ -11,8 +11,6 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
-/*============================================================================================
-=============================================================================*/
 
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -910,10 +908,6 @@ static struct platform_device btwilink_device = {
     .id = -1,
 };
 
-static struct twl4030_madc_platform_data twl6030_gpadc = {
-    .irq_line = -1,
-};
-
 static struct platform_device btbcm_device = {
     .name = "bt_power",
     .id = -1,
@@ -1146,16 +1140,6 @@ static int wifi_set_power(struct device *dev, int slot, int power_on, int vdd)
 }
 #endif
 
-// Defined this data struct in config_twl6030_default.h
-#if 0
-static struct twl4030_usb_data omap4_usbphy_data = {
-    .phy_init    = omap4430_phy_init,
-    .phy_exit    = omap4430_phy_exit,
-    .phy_power    = omap4430_phy_power,
-    .phy_suspend    = omap4430_phy_suspend,
-};
-#endif
-
 static struct omap2_hsmmc_info mmc[] = {
     {
         .mmc        = 2,
@@ -1223,27 +1207,6 @@ static struct regulator_consumer_supply sdp4430_cam2_supply[] = {
 #endif
 };
 #endif
-
-static struct regulator_consumer_supply omap4_sdp4430_vmmc5_supply = {
-    .supply = "vmmc",
-    .dev_name = "omap_hsmmc.4",
-};
-static struct regulator_init_data sdp4430_vmmc5 = {
-    .constraints = {
-        .valid_ops_mask = REGULATOR_CHANGE_STATUS,
-    },
-    .num_consumer_supplies = 1,
-    .consumer_supplies = &omap4_sdp4430_vmmc5_supply,
-};
-static struct fixed_voltage_config sdp4430_vwlan = {
-    .supply_name = "vwl1271",
-    .microvolts = 1800000, /* 1.8V */
-    .gpio = GPIO_WIFI_PMENA,
-    .startup_delay = 70000, /* 70msec */
-    .enable_high = 1,
-    .enabled_at_boot = 0,
-    .init_data = &sdp4430_vmmc5,
-};
 
 struct regulator *enable_power_for_device(struct device* dev , const char* id,int uV)
 {
@@ -1323,60 +1286,6 @@ static int __init omap4_twl6030_hsmmc_init(struct omap2_hsmmc_info *controllers)
 
     return 0;
 }
-
-
-static int tps6130x_enable(int on)
-{
-    u8 val = 0;
-    int ret;
-
-    ret = twl_i2c_read_u8(TWL_MODULE_AUDIO_VOICE, &val, TWL6040_REG_GPOCTL);
-    if (ret < 0) {
-        pr_err("%s: failed to read GPOCTL %d\n", __func__, ret);
-        return ret;
-    }
-
-    /* TWL6040 GPO2 connected to TPS6130X NRESET */
-    if (on)
-        val |= TWL6040_GPO2;
-    else
-        val &= ~TWL6040_GPO2;
-
-    ret = twl_i2c_write_u8(TWL_MODULE_AUDIO_VOICE, val, TWL6040_REG_GPOCTL);
-    if (ret < 0)
-        pr_err("%s: failed to write GPOCTL %d\n", __func__, ret);
-
-    return ret;
-}
-
-static struct tps6130x_platform_data tps6130x_pdata = {
-    .chip_enable    = tps6130x_enable,
-};
-
-static struct regulator_consumer_supply twl6040_vddhf_supply[] = {
-    REGULATOR_SUPPLY("vddhf", "twl6040-codec"),
-};
-
-static struct regulator_init_data twl6040_vddhf = {
-    .constraints = {
-        .min_uV            = 4075000,
-        .max_uV            = 4950000,
-        .apply_uV        = true,
-        .valid_modes_mask    = REGULATOR_MODE_NORMAL
-                    | REGULATOR_MODE_STANDBY,
-        .valid_ops_mask        = REGULATOR_CHANGE_VOLTAGE
-                    | REGULATOR_CHANGE_MODE
-                    | REGULATOR_CHANGE_STATUS,
-    },
-    .num_consumer_supplies    = ARRAY_SIZE(twl6040_vddhf_supply),
-    .consumer_supplies    = twl6040_vddhf_supply,
-    .driver_data        = &tps6130x_pdata,
-};
-
-static struct bq2416x_platform_data sdp4430_bqdata = {
-    .max_charger_voltagemV = 4200,
-    .max_charger_currentmA = 1550,
-};
 
 static struct bq2416x_platform_data sdp4460_bqdata = {
     .max_charger_voltagemV = 4200,
@@ -1784,7 +1693,7 @@ static void omap_bq27510battery_init(void)
        gpio_direction_input(OMAP4_BQ27510_BAT_LOW_GPIO);
 }
 
-
+#ifdef CONFIG_PANEL_TAAL
 static int dsi1_panel_set_backlight(struct omap_dss_device *dssdev, int level)
 {
     int r;
@@ -1821,6 +1730,8 @@ static int dsi1_panel_set_backlight(struct omap_dss_device *dssdev, int level)
 }
 
 static struct nokia_dsi_panel_data dsi1_panel;
+#endif
+
 static struct sp_dsi_panel_data dsi_panel_sp;
 static struct toshiba_dsi_panel_data mdv20_dsi_panel;
 
