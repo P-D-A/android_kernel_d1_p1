@@ -134,11 +134,10 @@ flags_out:
 			goto setversion_out;
 		}
 
-		mutex_lock(&inode->i_mutex);
 		handle = ext3_journal_start(inode, 1);
 		if (IS_ERR(handle)) {
 			err = PTR_ERR(handle);
-			goto unlock_out;
+			goto setversion_out;
 		}
 		err = ext3_reserve_inode_write(handle, inode, &iloc);
 		if (err == 0) {
@@ -147,9 +146,6 @@ flags_out:
 			err = ext3_mark_iloc_dirty(handle, inode, &iloc);
 		}
 		ext3_journal_stop(handle);
-
-unlock_out:
-		mutex_unlock(&inode->i_mutex);
 setversion_out:
 		mnt_drop_write_file(filp);
 		return err;

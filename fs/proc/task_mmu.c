@@ -681,7 +681,6 @@ static int clear_refs_pte_range(pmd_t *pmd, unsigned long addr,
 #define CLEAR_REFS_ALL 1
 #define CLEAR_REFS_ANON 2
 #define CLEAR_REFS_MAPPED 3
-#define CLEAR_REFS_MM_HIWATER_RSS 5
 
 static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *ppos)
@@ -701,8 +700,7 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 	rv = kstrtoint(strstrip(buffer), 10, &type);
 	if (rv < 0)
 		return rv;
-	if ((type < CLEAR_REFS_ALL || type > CLEAR_REFS_MAPPED) &&
-	    type != CLEAR_REFS_MM_HIWATER_RSS)
+	if (type < CLEAR_REFS_ALL || type > CLEAR_REFS_MAPPED)
 		return -EINVAL;
 	task = get_proc_task(file->f_path.dentry->d_inode);
 	if (!task)
@@ -713,18 +711,6 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 			.pmd_entry = clear_refs_pte_range,
 			.mm = mm,
 		};
-
-		if (type == CLEAR_REFS_MM_HIWATER_RSS) {
-			/*
-			 * Writing 5 to /proc/pid/clear_refs resets the peak
-			 * resident set size to this mm's current rss value.
-			 */
-			down_write(&mm->mmap_sem);
-			reset_mm_hiwater_rss(mm);
-			up_write(&mm->mmap_sem);
-			goto out_mm;
-		}
-
 		down_read(&mm->mmap_sem);
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
 			clear_refs_walk.private = vma;
@@ -748,7 +734,6 @@ static ssize_t clear_refs_write(struct file *file, const char __user *buf,
 		}
 		flush_tlb_mm(mm);
 		up_read(&mm->mmap_sem);
-out_mm:
 		mmput(mm);
 	}
 	put_task_struct(task);
@@ -1024,8 +1009,7 @@ out:
 
 static int pagemap_open(struct inode *inode, struct file *file)
 {
-	/* do not disclose physical addresses to unprivileged
-	   userspace (closes a rowhammer attack vector) */
+	/* do not disclose physical addresses: attack vector */
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
 	return 0;

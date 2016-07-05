@@ -696,7 +696,9 @@ static int fuse_readpages_fill(void *_data, struct page *page)
 		 */
 		put_page(newpage);
 
+#ifdef CONFIG_CMA
 		lru_cache_add_lru(newpage, LRU_ACTIVE_FILE);
+#endif
 
 		/* finally release the old page and swap pointers */
 		unlock_page(oldpage);
@@ -953,7 +955,6 @@ static ssize_t fuse_fill_write_pages(struct fuse_req *req,
 		pagefault_enable();
 		flush_dcache_page(page);
 
-		iov_iter_advance(ii, tmp);
 		if (!tmp) {
 			unlock_page(page);
 			page_cache_release(page);
@@ -965,6 +966,7 @@ static ssize_t fuse_fill_write_pages(struct fuse_req *req,
 		req->pages[req->num_pages] = page;
 		req->num_pages++;
 
+		iov_iter_advance(ii, tmp);
 		count += tmp;
 		pos += tmp;
 		offset += tmp;
@@ -1064,9 +1066,7 @@ static ssize_t fuse_file_aio_write(struct kiocb *iocb, const struct iovec *iov,
 	if (err)
 		goto out;
 
-	err = file_update_time(file);
-	if (err)
-		goto out;
+	file_update_time(file);
 
 	iov_iter_init(&i, iov, nr_segs, count, 0);
 	written = fuse_perform_write(file, mapping, &i, pos);
@@ -1891,7 +1891,7 @@ long fuse_do_ioctl(struct file *file, unsigned int cmd, unsigned long arg,
 	BUILD_BUG_ON(sizeof(struct fuse_ioctl_iovec) * FUSE_IOCTL_MAX_IOV > PAGE_SIZE);
 
 	err = -ENOMEM;
-	pages = kcalloc(FUSE_MAX_PAGES_PER_REQ, sizeof(pages[0]), GFP_KERNEL);
+	pages = kzalloc(sizeof(pages[0]) * FUSE_MAX_PAGES_PER_REQ, GFP_KERNEL);
 	iov_page = (struct iovec *) __get_free_page(GFP_KERNEL);
 	if (!pages || !iov_page)
 		goto out;

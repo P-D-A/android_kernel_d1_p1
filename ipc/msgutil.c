@@ -16,7 +16,6 @@
 #include <linux/ipc_namespace.h>
 #include <asm/uaccess.h>
 
-#include <linux/proc_fs.h>
 #include "util.h"
 
 DEFINE_SPINLOCK(mq_lock);
@@ -34,7 +33,6 @@ struct ipc_namespace init_ipc_ns = {
 	.mq_msgsize_max  = DFLT_MSGSIZEMAX,
 #endif
 	.user_ns = &init_user_ns,
-	.proc_inum = PROC_IPC_INIT_INO,
 };
 
 atomic_t nr_ipc_ns = ATOMIC_INIT(1);

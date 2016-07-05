@@ -51,7 +51,7 @@ static long do_sys_name_to_handle(struct path *path,
 	handle_bytes = handle_dwords * sizeof(u32);
 	handle->handle_bytes = handle_bytes;
 	if ((handle->handle_bytes > f_handle.handle_bytes) ||
-	    (retval == FILEID_INVALID) || (retval == -ENOSPC)) {
+	    (retval == 255) || (retval == -ENOSPC)) {
 		/* As per old exportfs_encode_fh documentation
 		 * we could return ENOSPC to indicate overflow
 		 * But file system returned 255 always. So handle
@@ -196,9 +196,8 @@ static int handle_to_path(int mountdirfd, struct file_handle __user *ufh,
 		goto out_err;
 	}
 	/* copy the full handle */
-	*handle = f_handle;
-	if (copy_from_user(&handle->f_handle,
-			   &ufh->f_handle,
+	if (copy_from_user(handle, ufh,
+			   sizeof(struct file_handle) +
 			   f_handle.handle_bytes)) {
 		retval = -EFAULT;
 		goto out_handle;

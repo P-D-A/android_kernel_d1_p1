@@ -162,11 +162,10 @@ flags_out:
 			goto setversion_out;
 		}
 
-		mutex_lock(&inode->i_mutex);
 		handle = ext4_journal_start(inode, 1);
 		if (IS_ERR(handle)) {
 			err = PTR_ERR(handle);
-			goto unlock_out;
+			goto setversion_out;
 		}
 		err = ext4_reserve_inode_write(handle, inode, &iloc);
 		if (err == 0) {
@@ -175,9 +174,6 @@ flags_out:
 			err = ext4_mark_iloc_dirty(handle, inode, &iloc);
 		}
 		ext4_journal_stop(handle);
-
-unlock_out:
-		mutex_unlock(&inode->i_mutex);
 setversion_out:
 		mnt_drop_write_file(filp);
 		return err;
@@ -353,7 +349,7 @@ mext_out:
 		if (!blk_queue_discard(q))
 			return -EOPNOTSUPP;
 
-		if (copy_from_user(&range, (struct fstrim_range __user *)arg,
+		if (copy_from_user(&range, (struct fstrim_range *)arg,
 		    sizeof(range)))
 			return -EFAULT;
 
@@ -363,7 +359,7 @@ mext_out:
 		if (ret < 0)
 			return ret;
 
-		if (copy_to_user((struct fstrim_range __user *)arg, &range,
+		if (copy_to_user((struct fstrim_range *)arg, &range,
 		    sizeof(range)))
 			return -EFAULT;
 
