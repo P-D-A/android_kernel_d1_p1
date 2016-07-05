@@ -543,14 +543,12 @@ static void bfq_forget_entity(struct bfq_service_tree *st,
 			      struct bfq_entity *entity)
 {
 	struct bfq_queue *bfqq = bfq_entity_to_bfqq(entity);
-	struct bfq_sched_data *sd;
 
 	BUG_ON(!entity->on_st);
 
 	entity->on_st = 0;
 	st->wsum -= entity->weight;
 	if (bfqq != NULL) {
-		sd = entity->sched_data;
 		bfq_log_bfqq(bfqq->bfqd, bfqq, "forget_entity: %p %d",
 			     bfqq, atomic_read(&bfqq->ref));
 		bfq_put_queue(bfqq);
@@ -1087,9 +1085,9 @@ static struct bfq_queue *bfq_get_next_queue(struct bfq_data *bfqd)
 
 static void __bfq_bfqd_reset_in_service(struct bfq_data *bfqd)
 {
-	if (bfqd->in_service_bic != NULL) {
-		put_io_context(bfqd->in_service_bic->icq.ioc);
-		bfqd->in_service_bic = NULL;
+	if (bfqd->in_service_cic != NULL) {
+		put_io_context(bfqd->in_service_cic->ioc);
+		bfqd->in_service_cic = NULL;
 	}
 
 	bfqd->in_service_queue = NULL;

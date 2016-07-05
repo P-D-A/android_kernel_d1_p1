@@ -1,5 +1,5 @@
 /*
- * BFQ-v7r8 for 3.3.0: data structures and common functions prototypes.
+ * BFQ-v7r8 for 3.0.0: data structures and common functions prototypes.
  *
  * Based on ideas and code from CFQ:
  * Copyright (C) 2003 Jens Axboe <axboe@kernel.dk>
@@ -196,6 +196,8 @@ struct bfq_group;
  * @max_budget: maximum budget allowed from the feedback mechanism.
  * @budget_timeout: budget expiration (in jiffies).
  * @dispatched: number of requests on the dispatch list or inside driver.
+ * @org_ioprio: saved ioprio during boosted periods.
+ * @org_ioprio_class: saved ioprio_class during boosted periods.
  * @flags: status flags.
  * @bfqq_list: node for active/idle bfqq list inside our bfqd.
  * @burst_list_node: node for the device's burst list.
@@ -213,26 +215,24 @@ struct bfq_group;
  *                        the @bfq-queue is being weight-raised, otherwise
  *                        finish time of the last weight-raising period
  * @wr_cur_max_time: current max raising time for this queue
- * @soft_rt_next_start: minimum time instant such that, only if a new
- *                      request is enqueued after this time instant in an
- *                      idle @bfq_queue with no outstanding requests, then
- *                      the task associated with the queue it is deemed as
- *                      soft real-time (see the comments to the function
+ * @soft_rt_next_start: minimum time instant such that, only if a new request
+ *                      is enqueued after this time instant in an idle
+ *                      @bfq_queue with no outstanding requests, then the
+ *                      task associated with the queue it is deemed as soft
+ *                      real-time (see the comments to the function
  *                      bfq_bfqq_softrt_next_start())
  * @last_idle_bklogged: time of the last transition of the @bfq_queue from
  *                      idle to backlogged
  * @service_from_backlogged: cumulative service received from the @bfq_queue
- *                           since the last transition from idle to
- *                           backlogged
- * @bic: pointer to the bfq_io_cq owning the bfq_queue, set to %NULL if the
+ *                           since the last transition from idle to backlogged
+ * @cic: pointer to the cfq_io_context owning the bfq_queue, set to %NULL if the
  *	 queue is shared
  *
- * A bfq_queue is a leaf request queue; it can be associated with an
- * io_context or more, if it  is  async or shared  between  cooperating
- * processes. @cgroup holds a reference to the cgroup, to be sure that it
- * does not disappear while a bfqq still references it (mostly to avoid
- * races between request issuing and task migration followed by cgroup
- * destruction).
+ * A bfq_queue is a leaf request queue; it can be associated with an io_context
+ * or more, if it is async or shared between cooperating processes. @cgroup
+ * holds a reference to the cgroup, to be sure that it does not disappear while
+ * a bfqq still references it (mostly to avoid races between request issuing and
+ * task migration followed by cgroup destruction).
  * All the fields are protected by the queue lock of the containing bfqd.
  */
 struct bfq_queue {
@@ -258,6 +258,9 @@ struct bfq_queue {
 
 	int dispatched;
 
+	unsigned short org_ioprio;
+	unsigned short org_ioprio_class;
+
 	unsigned int flags;
 
 	struct list_head bfqq_list;
@@ -272,7 +275,6 @@ struct bfq_queue {
 	unsigned int requests_within_timer;
 
 	pid_t pid;
-	struct bfq_io_cq *bic;
 
 	/* weight-raising fields */
 	unsigned long wr_cur_max_time;
@@ -281,63 +283,8 @@ struct bfq_queue {
 	unsigned int wr_coeff;
 	unsigned long last_idle_bklogged;
 	unsigned long service_from_backlogged;
-};
 
-/**
- * struct bfq_ttime - per process thinktime stats.
- * @ttime_total: total process thinktime
- * @ttime_samples: number of thinktime samples
- * @ttime_mean: average process thinktime
- */
-struct bfq_ttime {
-	unsigned long last_end_request;
-
-	unsigned long ttime_total;
-	unsigned long ttime_samples;
-	unsigned long ttime_mean;
-};
-
-/**
- * struct bfq_io_cq - per (request_queue, io_context) structure.
- * @icq: associated io_cq structure
- * @bfqq: array of two process queues, the sync and the async
- * @ttime: associated @bfq_ttime struct
- * @wr_time_left: snapshot of the time left before weight raising ends
- *                for the sync queue associated to this process; this
- *		  snapshot is taken to remember this value while the weight
- *		  raising is suspended because the queue is merged with a
- *		  shared queue, and is used to set @raising_cur_max_time
- *		  when the queue is split from the shared queue and its
- *		  weight is raised again
- * @saved_idle_window: same purpose as the previous field for the idle
- *                     window
- * @saved_IO_bound: same purpose as the previous two fields for the I/O
- *                  bound classification of a queue
- * @saved_in_large_burst: same purpose as the previous fields for the
- *                        value of the field keeping the queue's belonging
- *                        to a large burst
- * @was_in_burst_list: true if the queue belonged to a burst list
- *                     before its merge with another cooperating queue
- * @cooperations: counter of consecutive successful queue merges underwent
- *                by any of the process' @bfq_queues
- * @failed_cooperations: counter of consecutive failed queue merges of any
- *                       of the process' @bfq_queues
- */
-struct bfq_io_cq {
-	struct io_cq icq; /* must be the first member */
-	struct bfq_queue *bfqq[2];
-	struct bfq_ttime ttime;
-	int ioprio;
-
-	unsigned int wr_time_left;
-	bool saved_idle_window;
-	bool saved_IO_bound;
-
-	bool saved_in_large_burst;
-	bool was_in_burst_list;
-
-	unsigned int cooperations;
-	unsigned int failed_cooperations;
+	struct cfq_io_context *cic;
 };
 
 enum bfq_device_speed {
@@ -349,42 +296,43 @@ enum bfq_device_speed {
  * struct bfq_data - per device data structure.
  * @queue: request queue for the managed device.
  * @root_group: root bfq_group for the device.
- * @rq_pos_tree: rbtree sorted by next_request position, used when
- *               determining if two or more queues have interleaving
- *               requests (see bfq_close_cooperator()).
+ * @rq_pos_tree: rbtree sorted by next_request position,
+ *		used when determining if two or more queues
+ *		have interleaving requests (see bfq_close_cooperator).
+ * @eqm_lock:  spinlock used to protect all data structures pertaining
+ *             the Early Queue Merge (EQM) mechanism.
  * @active_numerous_groups: number of bfq_groups containing more than one
  *                          active @bfq_entity.
  * @queue_weights_tree: rbtree of weight counters of @bfq_queues, sorted by
  *                      weight. Used to keep track of whether all @bfq_queues
- *                     have the same weight. The tree contains one counter
- *                     for each distinct weight associated to some active
- *                     and not weight-raised @bfq_queue (see the comments to
+ *			have the same weight. The tree contains one counter
+ *			for each distinct weight associated to some active
+ *			and not weight-raised @bfq_queue (see the comments to
  *                      the functions bfq_weights_tree_[add|remove] for
- *                     further details).
+ *			further details).
  * @group_weights_tree: rbtree of non-queue @bfq_entity weight counters, sorted
  *                      by weight. Used to keep track of whether all
- *                     @bfq_groups have the same weight. The tree contains
- *                     one counter for each distinct weight associated to
- *                     some active @bfq_group (see the comments to the
- *                     functions bfq_weights_tree_[add|remove] for further
- *                     details).
+ *			@bfq_groups have the same weight. The tree contains
+ *			one counter for each distinct weight associated to
+ *			some active @bfq_group (see the comments to the
+ *			functions bfq_weights_tree_[add|remove] for further
+ *			details).
  * @busy_queues: number of bfq_queues containing requests (including the
- *		 queue in service, even if it is idling).
+ *		 queue under service, even if it is idling).
  * @busy_in_flight_queues: number of @bfq_queues containing pending or
- *                         in-flight requests, plus the @bfq_queue in
- *                         service, even if idle but waiting for the
- *                         possible arrival of its next sync request. This
- *                         field is updated only if the device is rotational,
- *                         but used only if the device is also NCQ-capable.
- *                         The reason why the field is updated also for non-
- *                         NCQ-capable rotational devices is related to the
- *                         fact that the value of @hw_tag may be set also
- *                         later than when busy_in_flight_queues may need to
- *                         be incremented for the first time(s). Taking also
- *                         this possibility into account, to avoid unbalanced
- *                         increments/decrements, would imply more overhead
- *                         than just updating busy_in_flight_queues
- *                         regardless of the value of @hw_tag.
+ *                         in-flight requests, plus the @bfq_queue in service,
+ *                         even if idle but waiting for the possible arrival
+ *                         of its next sync request. This field is updated only
+ *                         if the device is rotational, but used only if the
+ *                         device is also NCQ-capable. The reason why the field
+ *                         is updated also for non-NCQ-capable rotational
+ *                         devices is related to the fact that the value of
+ *                         hw_tag may be set also later than when this field may
+ *                         need to be incremented for the first time(s).
+ *                         Taking also this possibility into account, to avoid
+ *                         unbalanced increments/decrements, would imply more
+ *                         overhead than just updating this field regardless of
+ *                         the value of hw_tag.
  * @const_seeky_busy_in_flight_queues: number of constantly-seeky @bfq_queues
  *                                     (that is, seeky queues that expired
  *                                     for budget timeout at least once)
@@ -395,27 +343,28 @@ enum bfq_device_speed {
  *                                     is rotational, but used only if the
  *                                     device is also NCQ-capable (see the
  *                                     comments to @busy_in_flight_queues).
- * @wr_busy_queues: number of weight-raised busy @bfq_queues.
+ * @raised_busy_queues: number of weight-raised busy bfq_queues.
  * @queued: number of queued requests.
  * @rq_in_driver: number of requests dispatched and waiting for completion.
  * @sync_flight: number of sync requests in the driver.
- * @max_rq_in_driver: max number of reqs in driver in the last
- *                    @hw_tag_samples completed requests.
+ * @max_rq_in_driver: max number of reqs in driver in the last @hw_tag_samples
+ *		      completed requests.
  * @hw_tag_samples: nr of samples used to calculate hw_tag.
  * @hw_tag: flag set to one if the driver is showing a queueing behavior.
  * @budgets_assigned: number of budgets assigned.
  * @idle_slice_timer: timer set when idling for the next sequential request
- *                    from the queue in service.
+ *                    from the queue under service.
  * @unplug_work: delayed work to restart dispatching on the request queue.
- * @in_service_queue: bfq_queue in service.
- * @in_service_bic: bfq_io_cq (bic) associated with the @in_service_queue.
+ * @in_service_queue: @bfq_queue under service.
+ * @in_service_cic: cfq_io_context (cic) associated with the @in_service_queue.
  * @last_position: on-disk position of the last served request.
  * @last_budget_start: beginning of the last budget.
  * @last_idling_start: beginning of the last idle slice.
  * @peak_rate: peak transfer rate observed for a budget.
  * @peak_rate_samples: number of samples used to calculate @peak_rate.
- * @bfq_max_budget: maximum budget allotted to a bfq_queue before
- *                  rescheduling.
+ * @bfq_max_budget: maximum budget allotted to a bfq_queue before rescheduling.
+ * @cic_index: use small consequent indexes as radix tree keys to reduce depth
+ * @cic_list: list of all the cics active on the bfq_data device.
  * @group_list: list of all the bfq_groups active on the device.
  * @active_list: list of all the bfq_queues active on the device.
  * @idle_list: list of all the bfq_queues idle on the device.
@@ -469,9 +418,9 @@ enum bfq_device_speed {
  * @bfq_wr_min_idle_time: minimum idle period after which weight-raising
  *			  may be reactivated for a queue (in jiffies).
  * @bfq_wr_min_inter_arr_async: minimum period between request arrivals
- *				after which weight-raising may be
- *				reactivated for an already busy queue
- *				(in jiffies).
+ *                              after which weight-raising may be
+ *                              reactivated for an already busy queue
+ *                              (in jiffies).
  * @bfq_wr_max_softrt_rate: max service-rate for a soft real-time queue,
  *			    sectors per seconds.
  * @RT_prod: cached value of the product R*T used for computing the maximum
@@ -485,11 +434,12 @@ struct bfq_data {
 	struct request_queue *queue;
 
 	struct bfq_group *root_group;
-	struct rb_root rq_pos_tree;
-
 #ifdef CONFIG_CGROUP_BFQIO
 	int active_numerous_groups;
 #endif
+
+	struct rb_root rq_pos_tree;
+	spinlock_t eqm_lock;
 
 	struct rb_root queue_weights_tree;
 	struct rb_root group_weights_tree;
@@ -512,7 +462,7 @@ struct bfq_data {
 	struct work_struct unplug_work;
 
 	struct bfq_queue *in_service_queue;
-	struct bfq_io_cq *in_service_bic;
+	struct cfq_io_context *in_service_cic;
 
 	sector_t last_position;
 
@@ -522,6 +472,8 @@ struct bfq_data {
 	u64 peak_rate;
 	unsigned long bfq_max_budget;
 
+	unsigned int cic_index;
+	struct list_head cic_list;
 	struct hlist_head group_list;
 	struct list_head active_list;
 	struct list_head idle_list;
@@ -733,21 +685,37 @@ bfq_entity_service_tree(struct bfq_entity *entity)
 	return sched_data->service_tree + idx;
 }
 
-static inline struct bfq_queue *bic_to_bfqq(struct bfq_io_cq *bic,
+static inline struct bfq_queue *cic_to_bfqq(struct cfq_io_context *cic,
 					    bool is_sync)
 {
-	return bic->bfqq[is_sync];
+	return cic->cfqq[is_sync];
 }
 
-static inline void bic_set_bfqq(struct bfq_io_cq *bic,
+static inline void cic_set_bfqq(struct cfq_io_context *cic,
 				struct bfq_queue *bfqq, bool is_sync)
 {
-	bic->bfqq[is_sync] = bfqq;
+	cic->cfqq[is_sync] = bfqq;
 }
 
-static inline struct bfq_data *bic_to_bfqd(struct bfq_io_cq *bic)
+static inline void call_for_each_cic(struct io_context *ioc,
+				     void (*func)(struct io_context *,
+				     struct cfq_io_context *))
 {
-	return bic->icq.q->elevator->elevator_data;
+	struct cfq_io_context *cic;
+	struct hlist_node *n;
+
+	rcu_read_lock();
+	hlist_for_each_entry_rcu(cic, n, &ioc->bfq_cic_list, cic_list)
+		func(ioc, cic);
+	rcu_read_unlock();
+}
+
+#define CIC_DEAD_KEY    1ul
+#define CIC_DEAD_INDEX_SHIFT    1
+
+static inline void *bfqd_dead_key(struct bfq_data *bfqd)
+{
+	return (void *)(bfqd->cic_index << CIC_DEAD_INDEX_SHIFT | CIC_DEAD_KEY);
 }
 
 /**
@@ -755,7 +723,7 @@ static inline struct bfq_data *bic_to_bfqd(struct bfq_io_cq *bic)
  * @ptr: a pointer to a bfqd.
  * @flags: storage for the flags to be saved.
  *
- * This function allows bfqg->bfqd to be protected by the
+ * This function allows cic->key and bfqg->bfqd to be protected by the
  * queue lock of the bfqd they reference; the pointer is dereferenced
  * under RCU, so the storage for bfqd is assured to be safe as long
  * as the RCU read side critical section does not end.  After the
@@ -772,7 +740,7 @@ static inline struct bfq_data *bfq_get_bfqd_locked(void **ptr,
 	rcu_read_lock();
 	bfqd = rcu_dereference(*(struct bfq_data **)ptr);
 
-	if (bfqd != NULL) {
+	if (bfqd != NULL && !((unsigned long) bfqd & CIC_DEAD_KEY)) {
 		spin_lock_irqsave(bfqd->queue->queue_lock, *flags);
 		if (*ptr == bfqd)
 			goto out;
@@ -792,7 +760,7 @@ static inline void bfq_put_bfqd_unlock(struct bfq_data *bfqd,
 }
 
 static void bfq_check_ioprio_change(struct io_context *ioc,
-				    struct bfq_io_cq *bic);
+				    struct cfq_io_context *cic);
 static void bfq_put_queue(struct bfq_queue *bfqq);
 static void bfq_dispatch_insert(struct request_queue *q, struct request *rq);
 static struct bfq_queue *bfq_get_queue(struct bfq_data *bfqd,
