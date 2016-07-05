@@ -265,7 +265,7 @@ static ssize_t tps61310_led_hw_free(struct device *dev, struct device_attribute 
 {
     if ('0' != led_status)
     {
-        int ret, error;
+        int ret = 0;
         led_status = '0';
         ret = tps61310_write(tps61310_client, REGISTER0 , STATE_BRIGHT_OFF);
         if (ret) {
