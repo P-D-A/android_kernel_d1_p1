@@ -14,8 +14,6 @@
 #include <linux/io.h>
 #include <linux/err.h>
 #include <linux/opp.h>
-#include <linux/slab.h>
-
 
 #include <plat/omap-pm.h>
 #include <plat/omap_device.h>
